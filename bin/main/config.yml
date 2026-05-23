@@ -1,0 +1,105 @@
+#==============================================================================================
+#    __  ______  _            __        _      __                
+#   / / / / / /_(_)_ _  ___ _/ /____   | | /| / /__ ________  ___
+#  / /_/ / / __/ /  ' \/ _ `/ __/ -_)  | |/ |/ / _ `/ __/ _ \/_-<
+#  \____/_/\__/_/_/_/_/\_,_/\__/\__/   |__/|__/\_,_/_/ / .__/___/
+#                                                      /_/         
+#  UltimateWarps - v1.0 by King_Le0_ | Knock Me on Discord for support! username: King_Le0_
+#==============================================================================================
+spawn:
+  enabled: true
+  cancel-on-move: true
+  cooldown: 10
+  delay: 5
+  title:
+    enabled: true
+    message: <b><gradient:#FF0000:#9400FF>ᴛᴇʟᴇᴘᴏʀᴛɪɴɢ ᴛᴏ sᴘᴀᴡɴ</gradient></b>
+    subtitle: <b><gradient:#5000FF:#9400FF>ᴘʟᴇᴀsᴇ ᴡᴀɪᴛ <white>%seconds%</white> sᴇᴄᴏɴᴅs</gradient></b>
+  bossbar:
+    enabled: true
+    color: PURPLE
+    style: SOLID
+    text: <b><gradient:#5000FF:#00B3FF>ᴛᴇʟᴇᴘᴏʀᴛɪɴɢ...</gradient></b>
+  particle:
+    enabled: true
+    type: PORTAL #use "DUST" for colored particles
+    count: 30
+    dust:
+      color: "#FF0000"
+      size: 1.0
+  sound:
+    enabled: true
+    type: BLOCK_NOTE_BLOCK_PLING
+    volume: 1.0
+    pitch: 1.0
+
+warp:
+  enabled: true
+  cancel-on-move: true
+  cooldown: 5
+  delay: 3
+  title:
+    enabled: true
+    message: <gradient:#00DCFF:#0036FF><b>ᴛᴇʟᴇᴘᴏʀᴛɪɴɢ ᴛᴏ</b> <white>%warp%</white></gradient>
+    subtitle: <gradient:#4547FF:#A4B7FE><b>ᴘʟᴇᴀsᴇ ᴡᴀɪᴛ</b><white> %seconds%</white><b>sᴇᴄᴏɴᴅs</b></gradient>
+  bossbar:
+    enabled: true
+    color: BLUE
+    style: SOLID
+    text: <b><gradient:#4547FF:#00DCFF>ᴛᴇʟᴇᴘᴏʀᴛɪɴɢ ᴛᴏ %warp%</gradient></b>
+  particle:
+    enabled: true
+    type: DUST   #use "DUST" for colored particles
+    count: 20
+    dust:
+      color: "#5555FF"
+      size: 1.0
+  sound:
+    enabled: true
+    type: BLOCK_NOTE_BLOCK_PLING
+    volume: 1.0
+    pitch: 1.0
+
+global:
+  cancel-on-move: true
+  default-cooldown: 5
+  default-delay: 5
+
+rank-multipliers:
+  default:
+    cooldown: 1.0
+    delay: 1.0
+  vip:
+    cooldown: 0.5
+    delay: 0.5
+  mvp:
+    cooldown: 0.5
+    delay: 0.5
+
+gui:
+  warp-gui-title: <dark_gray>ᴡᴀʀᴘs
+  admin-gui-title: <dark_gray>ᴡᴀʀᴘ ᴀᴅᴍɪɴ
+  size: 54
+  top-filler-material: MEGENTA_STAINED_GLASS_PANE
+  mid-filler-material: BLACK_STAINED_GLASS_PANE
+
+messages:
+  teleport-cancelled-move: <red>❌<gradient:#ff5555:#ffaa00> ᴛᴇʟᴇᴘᴏʀᴛ ᴄᴀɴᴄᴇʟʟᴇᴅ ʙᴇᴄᴀᴜsᴇ
+    ʏᴏᴜ ᴍᴏᴠᴇᴅ!</gradient>
+  teleport-cancelled-damage: <red>💥<gradient:#ff5555:#ffaa00> ᴛᴇʟᴇᴘᴏʀᴛ ᴄᴀɴᴄᴇʟʟᴇᴅ
+    ʙᴇᴄᴀᴜsᴇ ʏᴏᴜ ᴛᴏᴏᴋ ᴅᴀᴍᴀɢᴇ!</gradient>
+  teleportation-confirmed: <green>✅<gradient:#55ff55:#00aa00> ʏᴏᴜ ʜᴀᴠᴇ ʙᴇᴇɴ ᴛᴇʟᴇᴘᴏʀᴛᴇᴅ
+    ᴛᴏ <white>%warp%</white>!</gradient>
+  warp-not-found: <red>🚫<gradient:#ff5555:#ffaa00> ᴡᴀʀᴘ ɴᴏᴛ ғᴏᴜɴᴅ!</gradient>
+  no-permission: <red>🚫<gradient:#ff5555:#ffaa00> ʏᴏᴜ ᴅᴏ ɴᴏᴛ ʜᴀᴠᴇ ᴘᴇʀᴍɪssɪᴏɴ!</gradient>
+  cooldown-active: <blue>⏳<gradient:#ff5555:#ffaa00> ʏᴏᴜ ᴍᴜsᴛ ᴡᴀɪᴛ <white><b>%seconds%</b></white>
+    sᴇᴄᴏɴᴅs ʙᴇғᴏʀᴇ ᴜsɪɴɢ ᴛʜɪs ᴡᴀʀᴘ ᴀɢᴀɪɴ.</gradient>
+  spawn-set: <green>🌍<gradient:#55ff55:#00aa00> sᴜᴄᴄᴇssғᴜʟʟʏ sᴇᴛ sᴘᴀᴡɴ ʟᴏᴄᴀᴛɪᴏɴ!</gradient>
+  spawn-not-set: <red>🚫<gradient:#ff5555:#ffaa00> sᴘᴀᴡɴ ʟᴏᴄᴀᴛɪᴏɴ ɪs ɴᴏᴛ sᴇᴛ!</gradient>
+  spawn-deleted: <red>🗑<gradient:#55ff55:#00aa00> sᴘᴀᴡɴ ʟᴏᴄᴀᴛɪᴏɴ ᴅᴇʟᴇᴛᴇᴅ!</gradient>
+  warp-created: <blue>🌍<gradient:#55ff55:#00aa00> sᴜᴄᴄᴇssғᴜʟʟʏ ᴄʀᴇᴀᴛᴇᴅ ᴡᴀʀᴘ <white><b>%name%</b></white>!</gradient>
+  warp-deleted: <red>🗑<gradient:#55ff55:#00aa00> sᴜᴄᴄᴇssғᴜʟʟʏ ᴅᴇʟᴇᴛᴇᴅ ᴡᴀʀᴘ <white><b>%name%</b></white>!</gradient>
+  warp-edited: <blue>🌍<gradient:#55ff55:#00aa00> ᴡᴀʀᴘ <white><b>%name%</b></white>
+    ᴜᴘᴅᴀᴛᴇᴅ!</gradient>
+  reload-success: <blue>🌍<gradient:#55ff55:#00aa00> ᴜʟᴛɪᴍᴀᴛᴇᴡᴀʀᴘs ᴄᴏɴғɪɢᴜʀᴀᴛɪᴏɴ ᴀɴᴅ
+    ᴡᴀʀᴘs ʀᴇʟᴏᴀᴅᴇᴅ!</gradient>

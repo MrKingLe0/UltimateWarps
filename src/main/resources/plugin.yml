@@ -1,0 +1,61 @@
+name: UltimateWarps
+version: ${version}
+main: com.ultimatewarps.UltimateWarps
+api-version: '1.21'
+softdepend: [LuckPerms]
+author: King_Le0_
+description: Advanced warp management with GUIs and teleport effects.
+
+commands:
+  spawn:
+    description: Teleport to spawn.
+    usage: /spawn
+  setspawn:
+    description: Set the spawn location.
+    usage: /setspawn
+  delspawn:
+    description: Delete the spawn location.
+    usage: /delspawn
+  warp:
+    description: Open warp GUI or teleport to a warp.
+    usage: /warp [name]
+    aliases: [warps, warplist]
+  setwarp:
+    description: Create a new warp at your location.
+    usage: /setwarp <name>
+  delwarp:
+    description: Delete a warp.
+    usage: /delwarp <name>
+  warpsadmin:
+    description: Open the admin warp management GUI.
+    usage: /warpsadmin
+  ultimatewarps:
+    description: Main plugin command.
+    usage: /ultimatewarps <reload|spawn|warp|setwarp|delwarp|warpsadmin|setspawn|delspawn>
+    aliases: [uwarps]
+
+permissions:
+  ultimatewarps.admin:
+    description: Access to all admin commands.
+    default: op
+  ultimatewarps.spawn:
+    description: Access to /spawn.
+    default: true
+  ultimatewarps.warp.*:
+    description: Access to all warps.
+    default: true
+  ultimatewarps.warp.<name>:
+    description: Access to a specific warp.
+    default: true
+  ultimatewarps.bypass.cooldown:
+    description: Bypass warp cooldown.
+    default: false
+  ultimatewarps.bypass.delay:
+    description: Bypass warp delay.
+    default: false
+  ultimatewarps.rank.vip:
+    description: VIP rank multiplier.
+    default: false
+  ultimatewarps.rank.mvp:
+    description: MVP rank multiplier.
+    default: false
