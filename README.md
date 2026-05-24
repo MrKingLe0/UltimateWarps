@@ -40,7 +40,7 @@
 
 ## Installation
 
-1. Download the latest `.jar` from [Releases](https://github.com/yourname/UltimateWarps/releases)
+1. Download the latest `.jar` from [Releases](https://github.com/MrKingLe0/UltimateWarps/releases/)
 2. Place it in your server's `plugins/` folder
 3. Restart the server
 4. Edit `plugins/UltimateWarps/config.yml` to your liking
