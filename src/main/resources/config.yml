@@ -6,11 +6,14 @@
 #                                                      /_/         
 #  UltimateWarps - v1.0 by King_Le0_ | Knock Me on Discord for support! username: King_Le0_
 #==============================================================================================
+
+
+# spawn settings
 spawn:
-  enabled: true
+  enabled: true # enables the spawn feature
   cancel-on-move: true
-  cooldown: 10
-  delay: 5
+  cooldown: 10 # time required to use /spawn command again
+  delay: 5 # time required to teleport to spawn
   title:
     enabled: true
     message: <b><gradient:#FF0000:#9400FF>ᴛᴇʟᴇᴘᴏʀᴛɪɴɢ ᴛᴏ sᴘᴀᴡɴ</gradient></b>
@@ -33,11 +36,12 @@ spawn:
     volume: 1.0
     pitch: 1.0
 
+# warp settings
 warp:
-  enabled: true
+  enabled: true #enables the warp feature
   cancel-on-move: true
-  cooldown: 5
-  delay: 3
+  cooldown: 5 # default cooldown time for every warps
+  delay: 3 # default delay time for every warps
   title:
     enabled: true
     message: <gradient:#00DCFF:#0036FF><b>ᴛᴇʟᴇᴘᴏʀᴛɪɴɢ ᴛᴏ</b> <white>%warp%</white></gradient>
@@ -76,6 +80,7 @@ rank-multipliers:
     cooldown: 0.5
     delay: 0.5
 
+# warp GUI settings
 gui:
   warp-gui-title: <dark_gray>ᴡᴀʀᴘs
   admin-gui-title: <dark_gray>ᴡᴀʀᴘ ᴀᴅᴍɪɴ
@@ -83,6 +88,7 @@ gui:
   top-filler-material: MAGENTA_STAINED_GLASS_PANE
   mid-filler-material: BLACK_STAINED_GLASS_PANE
 
+# System Messages, you can customize it to your liking
 messages:
   teleport-cancelled-move: <red>❌<gradient:#ff5555:#ffaa00> ᴛᴇʟᴇᴘᴏʀᴛ ᴄᴀɴᴄᴇʟʟᴇᴅ ʙᴇᴄᴀᴜsᴇ
     ʏᴏᴜ ᴍᴏᴠᴇᴅ!</gradient>
