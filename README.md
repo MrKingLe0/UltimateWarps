@@ -74,9 +74,6 @@
 | `ultimatewarps.spawn` | `true` |
 | `ultimatewarps.warp.*` | `true` |
 | `ultimatewarps.warp.<name>` | `true` |
-| `ultimatewarps.bypass.cooldown` | `false` |
-| `ultimatewarps.bypass.delay` | `false` |
-| `ultimatewarps.rank.vip` , `mvp` , `dev` , etc. | `false` |
 
 ---
 
