@@ -6,8 +6,12 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.util.io.BukkitObjectInputStream;
+import org.bukkit.util.io.BukkitObjectOutputStream;
 
 import java.io.File;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.util.Base64;
 
 public class Warp {
@@ -62,10 +66,14 @@ public class Warp {
         yml.set("delay", delay);
         yml.set("permission", permission);
 
+        // Fix: Use proper ItemStack serialization
         if (icon != null) {
             try {
-                byte[] bytes = icon.serializeAsBytes();
-                yml.set("icon", Base64.getEncoder().encodeToString(bytes));
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                BukkitObjectOutputStream boos = new BukkitObjectOutputStream(baos);
+                boos.writeObject(icon);
+                boos.close();
+                yml.set("icon", Base64.getEncoder().encodeToString(baos.toByteArray()));
             } catch (Exception e) {
                 UltimateWarps.getInstance().getLogger().warning("Could not save icon for warp " + name);
             }
@@ -103,11 +111,14 @@ public class Warp {
         warp.permission = yml.getString("permission", null);
         warp.file = file;
 
-        // Load icon
+        // Fix: Use proper ItemStack deserialization
         if (yml.contains("icon")) {
             try {
                 byte[] bytes = Base64.getDecoder().decode(yml.getString("icon"));
-                warp.icon = ItemStack.deserializeBytes(bytes);
+                ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
+                BukkitObjectInputStream bois = new BukkitObjectInputStream(bais);
+                warp.icon = (ItemStack) bois.readObject();
+                bois.close();
             } catch (Exception e) {
                 UltimateWarps.getInstance().getLogger().warning("Could not load icon for warp " + name);
             }

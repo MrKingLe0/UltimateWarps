@@ -3,8 +3,9 @@ version: ${version}
 main: com.ultimatewarps.UltimateWarps
 api-version: '1.21'
 softdepend: [LuckPerms]
+folia-supported: true
 author: King_Le0_
-description: Advanced warp management with GUIs and teleport effects.
+description: Advanced warp and spawn management with GUIs and teleport effects.
 
 commands:
   spawn:
@@ -19,7 +20,7 @@ commands:
   warp:
     description: Open warp GUI or teleport to a warp.
     usage: /warp [name]
-    aliases: [warps, warplist]
+    aliases: [warps, warpslist, warplist]
   setwarp:
     description: Create a new warp at your location.
     usage: /setwarp <name>

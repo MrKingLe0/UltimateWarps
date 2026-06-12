@@ -42,7 +42,7 @@ public class UltimateWarpsCommand implements CommandExecutor, TabCompleter {
                     sender.sendMessage(Component.text("Only players can use this command."));
                     return true;
                 }
-                new SpawnCommand().onCommand(sender, null, null, new String[0]);
+                new SpawnCommand(UltimateWarps.getInstance()).onCommand(sender, null, null, new String[0]);
                 break;
 
             case "setspawn":
@@ -67,7 +67,7 @@ public class UltimateWarpsCommand implements CommandExecutor, TabCompleter {
                 if (args.length == 1) {
                     new WarpGUI(player).open(0);
                 } else {
-                    new WarpCommand().onCommand(sender, null, null, new String[]{args[1]});
+                    new WarpCommand(UltimateWarps.getInstance()).onCommand(sender, null, null, new String[]{args[1]});
                 }
                 break;
 

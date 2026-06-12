@@ -41,7 +41,7 @@ public class GUIListener implements Listener {
 
             Warp editing = AdminGUI.getEditingWarp(inv);
             if (editing != null) {
-                // If icon slot (2) and cursor has an item, set the icon
+                // If icon slot (16) and cursor has an item, set the icon
                 if (rawSlot == 16 && event.getCursor() != null && event.getCursor().getType() != org.bukkit.Material.AIR) {
                     adminGui.setIcon(editing, event.getCursor());
                 } else {

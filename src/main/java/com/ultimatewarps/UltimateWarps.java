@@ -26,16 +26,18 @@ public final class UltimateWarps extends JavaPlugin {
     public void onEnable() {
         instance = this;
         saveDefaultConfig();
+        saveResource("warps-gui.yml", false);
         configManager = new ConfigManager(this);
         warpManager = new WarpManager(this);
         warpManager.loadWarps();
         cooldownManager = new CooldownManager();
-        effectManager = new EffectManager();
+        effectManager = new EffectManager(this);
 
         registerCommands();
         registerListeners();
 
         Bukkit.getConsoleSender().sendMessage(
+                "\n" +
                 "§d ==============================================================================\n" +
                 "§b   __  ______  _            __        _      __                \n" +
                 "§b  / / / / / /_(_)_ _  ___ _/ /____   | | /| / /__ ________  ___\n" +
@@ -49,9 +51,12 @@ public final class UltimateWarps extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        warpManager.saveAllWarps();
+        if (warpManager != null) {
+            warpManager.saveAllWarps();
+        }
         activeTeleports.values().forEach(TeleportTask::cancel);
         activeTeleports.clear();
+        
         instance = null;
         Bukkit.getConsoleSender().sendMessage(
                 "\n"+
@@ -67,11 +72,11 @@ public final class UltimateWarps extends JavaPlugin {
     }
 
     private void registerCommands() {
-        getCommand("spawn").setExecutor(new SpawnCommand());
+        getCommand("spawn").setExecutor(new SpawnCommand(this));
         getCommand("setspawn").setExecutor(new SetSpawnCommand());
         getCommand("delspawn").setExecutor(new DelSpawnCommand());
-        getCommand("warp").setExecutor(new WarpCommand());
-        getCommand("warp").setTabCompleter(new WarpCommand());
+        getCommand("warp").setExecutor(new WarpCommand(this));
+        getCommand("warp").setTabCompleter(new WarpCommand(this));
         getCommand("setwarp").setExecutor(new SetWarpCommand());
         getCommand("delwarp").setExecutor(new DelWarpCommand());
         getCommand("warpsadmin").setExecutor(new WarpsAdminCommand());

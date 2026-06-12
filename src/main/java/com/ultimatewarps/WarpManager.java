@@ -1,10 +1,15 @@
 package com.ultimatewarps;
 
+import com.ultimatewarps.Warp;
+import org.bukkit.entity.Player;
+
 import java.io.File;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 public class WarpManager {
 
@@ -62,5 +67,12 @@ public class WarpManager {
         if (warp != null) {
             warp.delete();
         }
+    }
+
+    public List<Warp> getAccessibleWarps(Player player) {
+        return warps.values().stream()
+            .filter(w -> w.isEnabled() && w.getLocation() != null)
+            .filter(w -> w.getPermission() == null || w.getPermission().isEmpty() || player.hasPermission(w.getPermission()) || player.hasPermission("ultimatewarps.warp.*"))
+            .collect(Collectors.toList());
     }
 }

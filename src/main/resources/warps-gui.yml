@@ -1,0 +1,159 @@
+# Warps GUI Configuration
+# Customize every slot and button in the warps menu
+
+# GUI Settings
+gui:
+  title: "&9&lsᴇʀᴠᴇʀ ᴡᴀʀᴘs"
+  rows: 6  # 1-6 rows (9, 18, 27, 36, 45, 54 slots)
+  fill-empty-slots: true
+  fill-item:
+    material: "GRAY_STAINED_GLASS_PANE"
+    name: " "
+    lore: []
+    amount: 1
+    enchanted: false
+
+# Click sound settings (global)
+click-sound:
+  sound: "UI_BUTTON_CLICK"
+  volume: 1.0
+  pitch: 1.0
+
+# Warp Item Default Template (applied to all warps)
+warp-item:
+  material: "PLAYER_HEAD"
+  name: "&d&l{warp_name}"
+  lore:
+    - ""
+    - "&7ᴄᴏᴏʟᴅᴏᴡɴ: &e{cooldown}s"
+    - "&7ᴅᴇʟᴀʏ: &e{delay}s"
+    - ""
+    - "&9ᴄʟɪᴄᴋ ᴛᴏ ᴛᴇʟᴇᴘᴏʀᴛ ᴛᴏ {warp_name}"
+  amount: 1
+  enchanted: false
+  head-texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNDQxYTAyNTMwMDBjMmIyOGQzODY0MjZiZDM4YTRmMmQ3NmViY2RkMDdmNjc1ZTExYjNlNjgxNGM2YThhMmVhIn19fQ=="
+
+# Warp Slots (where warps will appear)
+# Format: slot numbers 0-53 for 6 rows
+# Use "auto" to fill automatically from start to end
+# Or specify individual slots
+warp-slots:
+# 'auto or 'custom'
+  mode: "auto"
+  # For auto mode:
+  auto-start: 18
+  auto-end: 35
+  # For custom mode (uncomment to use):
+  # slots:
+  #   - 19
+  #   - 21
+  #   - 23
+  #   - 25
+  #   - 28
+  #   - 30
+  #   - 32
+  #   - 34
+
+# GUI buttons
+# Navigation Buttons
+buttons:
+  # Previous Page Button
+  previous-page:
+    enabled: true
+    slot: 48
+    material: "PLAYER_HEAD"
+    name: "&d← ᴘʀᴇᴠɪᴏᴜs ᴘᴀɢᴇ"
+    lore:
+      - "&eᴄʟɪᴄᴋ ᴛᴏ ɢᴏ ᴛᴏ ᴘʀᴇᴠɪᴏᴜs ᴘᴀɢᴇ"
+    amount: 1
+    head-texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNjllYTFkODYyNDdmNGFmMzUxZWQxODY2YmNhNmEzMDQwYTA2YzY4MTc3Yzc4ZTQyMzE2YTEwOThlNjBmYjdkMyJ9fX0="
+    hide-if-no-previous: true  # Hide if no previous page exists
+
+  # Next Page Button
+  next-page:
+    enabled: true
+    slot: 50  # Bottom row, last slot
+    material: "PLAYER_HEAD"
+    name: "&dɴᴇxᴛ ᴘᴀɢᴇ →"
+    lore:
+      - "&eᴄʟɪᴄᴋ ᴛᴏ ɢᴏ ᴛᴏ ɴᴇxᴛ ᴘᴀɢᴇ"
+    amount: 1
+    head-texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvODI3MWE0NzEwNDQ5NWUzNTdjM2U4ZTgwZjUxMWE5ZjEwMmIwNzAwY2E5Yjg4ZTg4Yjc5NWQzM2ZmMjAxMDVlYiJ9fX0="
+    hide-if-no-next: true  # Hide if no next page exists
+
+  # Spawn Button
+  spawn:
+    enabled: false
+    slot: 5
+    material: "PLAYER_HEAD"
+    name: "&a&lsᴘᴀᴡɴ"
+    lore:
+      - "&7ᴄʟɪᴄᴋ ᴛᴏ ᴛᴇʟᴇᴘᴏʀᴛ ᴛᴏ sᴘᴀᴡɴ"
+    amount: 1
+    head-texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTZmYzM5Y2U0ZThiMjVlNTI0MTQ1ZjllYzM5NWI5YzUwYzBiZTk3ZTg3YTE5MTU0NDVhMzNlOWFhNjUifX19"
+
+  # Close Button
+  close:
+    enabled: true
+    slot: 53
+    material: "BARRIER"
+    name: "&c&lClose"
+    lore:
+      - "&7Click to close the menu"
+    amount: 1
+
+  # Info Button (Page info)
+  info:
+    enabled: true
+    slot: 49
+    material: "PAPER"
+    name: "&f&lᴘᴀɢᴇ {current}/{total}"
+    lore:
+      - "&7ᴄᴜʀʀᴇɴᴛʟʏ ᴠɪᴇᴡɪɴɢ ᴘᴀɢᴇ {current}"
+      - "&7ᴏꜰ {total} ᴛᴏᴛᴀʟ ᴘᴀɢᴇs"
+    amount: 1
+    update-on-each-page: true  # Dynamic update
+
+  # Refresh Button (optional)
+  refresh:
+    enabled: false
+    slot: 47
+    material: "PLAYER_HEAD"
+    name: "&a&lRefresh"
+    lore:
+      - "&7Click to refresh the menu"
+    amount: 1
+    head-texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNDQxYTAyNTMwMDBjMmIyOGQzODY0MjZiZDM4YTRmMmQ3NmViY2RkMDdmNjc1ZTExYjNlNjgxNGM2YThhMmVhIn19fQ=="
+
+
+# Custom Items (static items that can be placed anywhere)
+# These are items that don't change and can be placed in specific slots
+custom-items:
+  # Example: Decorative items
+  top-border:
+    enabled: true
+    slots: [0, 1, 2, 3, 4, 5, 6, 7, 8, 45, 46, 47, 48, 49, 50, 51, 52, 53]
+    material: "PURPLE_STAINED_GLASS_PANE"
+    name: " "
+    lore: []
+    amount: 1
+    
+  bottom-border:
+    enabled: true
+    slots: [9, 10, 11, 12, 13, 14, 15, 16, 17, 36, 37, 38, 39, 40, 41, 42, 43, 44]
+    material: "BLUE_STAINED_GLASS_PANE"
+    name: " "
+    lore: []
+    amount: 1
+    
+  # Example: Custom shop button
+  # shop-button:
+  #   enabled: true
+  #   slot: 52
+  #   material: "EMERALD"
+  #   name: "&a&lShop"
+  #   lore:
+  #     - "&7Click to open shop"
+  #   command: "shop"
+  #   close-on-click: true
+  #   click-sound: "ENTITY_EXPERIENCE_ORB_PICKUP"  # Optional custom sound

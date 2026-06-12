@@ -1,6 +1,10 @@
 package com.ultimatewarps.gui;
 
-import com.ultimatewarps.*;
+import com.ultimatewarps.ChatInput;
+import com.ultimatewarps.ConfigManager;
+import com.ultimatewarps.HeadUtils;
+import com.ultimatewarps.UltimateWarps;
+import com.ultimatewarps.Warp;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.minimessage.MiniMessage;

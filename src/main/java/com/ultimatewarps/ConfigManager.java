@@ -29,22 +29,245 @@ public class ConfigManager {
         this.config = plugin.getConfig();
         this.spawnLocationManager = new SpawnLocationManager(plugin);
     }
+    
     public void reload() {
         plugin.reloadConfig();
         this.config = plugin.getConfig();
     }
 
     public Component parse(String message) {
+        if (message == null || message.isEmpty()) return Component.empty();
         return miniMessage.deserialize(message);
     }
 
-    // ---------- Spawn settings ----------
+    // ========== SPAWN SETTINGS ==========
     public boolean spawnEnabled() { return config.getBoolean("spawn.enabled", true); }
     public boolean spawnCancelOnMove() { return config.getBoolean("spawn.cancel-on-move", true); }
     public int spawnCooldown() { return config.getInt("spawn.cooldown", 10); }
     public int spawnDelay() { return config.getInt("spawn.delay", 5); }
 
-    // ---------- Rank multipliers (LuckPerms) ----------
+    // ========== SPAWN TITLE ==========
+    public boolean spawnTitleEnabled() { 
+        return config.getBoolean("spawn.title.enabled", true); 
+    }
+    
+    public Component getSpawnTitleMessage() {
+        String msg = config.getString("spawn.title.message", "<b><gradient:#FF0000:#9400FF>ᴛᴇʟᴇᴘᴏʀᴛɪɴɢ ᴛᴏ sᴘᴀᴡɴ</gradient></b>");
+        return parse(msg);
+    }
+    
+    public Component getSpawnSubtitleMessage(int seconds) {
+        String msg = config.getString("spawn.title.subtitle", "<b><gradient:#5000FF:#9400FF>ᴘʟᴇᴀsᴇ ᴡᴀɪᴛ <white>%seconds%</white> sᴇᴄᴏɴᴅs</gradient></b>");
+        msg = msg.replace("%seconds%", String.valueOf(seconds));
+        return parse(msg);
+    }
+
+    // ========== SPAWN BOSSBAR ==========
+    public boolean spawnBossBarEnabled() { 
+        return config.getBoolean("spawn.bossbar.enabled", true); 
+    }
+    
+    public Component getSpawnBossBarText(int seconds) {
+        String msg = config.getString("spawn.bossbar.text", "<b><gradient:#5000FF:#00B3FF>ᴛᴇʟᴇᴘᴏʀᴛɪɴɢ...</gradient></b>");
+        msg = msg.replace("%seconds%", String.valueOf(seconds));
+        return parse(msg);
+    }
+    
+    public BarColor spawnBossBarColor() {
+        try { 
+            return BarColor.valueOf(config.getString("spawn.bossbar.color", "PURPLE").toUpperCase()); 
+        } catch (IllegalArgumentException e) { 
+            return BarColor.PURPLE; 
+        }
+    }
+    
+    public BarStyle spawnBossBarStyle() {
+        try { 
+            return BarStyle.valueOf(config.getString("spawn.bossbar.style", "SOLID").toUpperCase()); 
+        } catch (IllegalArgumentException e) { 
+            return BarStyle.SOLID; 
+        }
+    }
+
+    // ========== SPAWN PARTICLES ==========
+    public boolean spawnParticleEnabled() { 
+        return config.getBoolean("spawn.particle.enabled", true); 
+    }
+    
+    public Particle spawnParticleType() {
+        try { 
+            return Particle.valueOf(config.getString("spawn.particle.type", "PORTAL").toUpperCase()); 
+        } catch (IllegalArgumentException e) { 
+            return Particle.PORTAL; 
+        }
+    }
+    
+    public int spawnParticleCount() { 
+        return config.getInt("spawn.particle.count", 30); 
+    }
+    
+    public Color spawnDustColor() {
+        String raw = config.getString("spawn.particle.dust.color", "#FF0000");
+        return parseColor(raw);
+    }
+    
+    public float spawnDustSize() {
+        return (float) config.getDouble("spawn.particle.dust.size", 1.0);
+    }
+    
+    public boolean isSpawnDustParticle() {
+        return spawnParticleType() == Particle.DUST;
+    }
+
+    // ========== SPAWN SOUND ==========
+    public boolean spawnSoundEnabled() { 
+        return config.getBoolean("spawn.sound.enabled", true); 
+    }
+    
+    public Sound spawnSoundType() {
+        String key = config.getString("spawn.sound.type", "BLOCK_NOTE_BLOCK_PLING");
+        try {
+            return Sound.valueOf(key.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return Sound.BLOCK_NOTE_BLOCK_PLING;
+        }
+    }
+    
+    public float spawnSoundVolume() { 
+        return (float) config.getDouble("spawn.sound.volume", 1.0); 
+    }
+    
+    public float spawnSoundPitch() { 
+        return (float) config.getDouble("spawn.sound.pitch", 1.0); 
+    }
+
+    // ========== WARP SETTINGS ==========
+    public boolean warpEnabled() { 
+        return config.getBoolean("warp.enabled", true); 
+    }
+    
+    public boolean warpCancelOnMove() { 
+        return config.getBoolean("warp.cancel-on-move", true); 
+    }
+    
+    public int warpDefaultCooldown() { 
+        return config.getInt("warp.cooldown", 5); 
+    }
+    
+    public int warpDefaultDelay() { 
+        return config.getInt("warp.delay", 3); 
+    }
+
+    // ========== WARP TITLE ==========
+    public boolean warpTitleEnabled() { 
+        return config.getBoolean("warp.title.enabled", true); 
+    }
+    
+    public Component getWarpTitleMessage(String warpName) {
+        String msg = config.getString("warp.title.message", "<gradient:#00DCFF:#0036FF><b>ᴛᴇʟᴇᴘᴏʀᴛɪɴɢ ᴛᴏ</b> <white>%warp%</white></gradient>");
+        msg = msg.replace("%warp%", warpName);
+        return parse(msg);
+    }
+    
+    public Component getWarpSubtitleMessage(int seconds) {
+        String msg = config.getString("warp.title.subtitle", "<gradient:#4547FF:#A4B7FE><b>ᴘʟᴇᴀsᴇ ᴡᴀɪᴛ</b><white> %seconds% </white><b>sᴇᴄᴏɴᴅs</b></gradient>");
+        msg = msg.replace("%seconds%", String.valueOf(seconds));
+        return parse(msg);
+    }
+
+    // ========== WARP BOSSBAR ==========
+    public boolean warpBossBarEnabled() { 
+        return config.getBoolean("warp.bossbar.enabled", true); 
+    }
+    
+    public Component getWarpBossBarText(String warpName, int seconds) {
+        String msg = config.getString("warp.bossbar.text", "<b><gradient:#4547FF:#00DCFF>ᴛᴇʟᴇᴘᴏʀᴛɪɴɢ ᴛᴏ %warp%</gradient></b>");
+        msg = msg.replace("%warp%", warpName).replace("%seconds%", String.valueOf(seconds));
+        return parse(msg);
+    }
+    
+    public BarColor warpBossBarColor() {
+        try { 
+            return BarColor.valueOf(config.getString("warp.bossbar.color", "BLUE").toUpperCase()); 
+        } catch (IllegalArgumentException e) { 
+            return BarColor.BLUE; 
+        }
+    }
+    
+    public BarStyle warpBossBarStyle() {
+        try { 
+            return BarStyle.valueOf(config.getString("warp.bossbar.style", "SOLID").toUpperCase()); 
+        } catch (IllegalArgumentException e) { 
+            return BarStyle.SOLID; 
+        }
+    }
+
+    // ========== WARP PARTICLES ==========
+    public boolean warpParticleEnabled() { 
+        return config.getBoolean("warp.particle.enabled", true); 
+    }
+    
+    public Particle warpParticleType() {
+        try { 
+            return Particle.valueOf(config.getString("warp.particle.type", "DUST").toUpperCase()); 
+        } catch (IllegalArgumentException e) { 
+            return Particle.PORTAL; 
+        }
+    }
+    
+    public int warpParticleCount() { 
+        return config.getInt("warp.particle.count", 30); 
+    }
+    
+    public Color warpDustColor() {
+        String raw = config.getString("warp.particle.dust.color", "#5555FF");
+        return parseColor(raw);
+    }
+    
+    public float warpDustSize() {
+        return (float) config.getDouble("warp.particle.dust.size", 1.0);
+    }
+    
+    public boolean isWarpDustParticle() {
+        return warpParticleType() == Particle.DUST;
+    }
+
+    // ========== WARP SOUND ==========
+    public boolean warpSoundEnabled() { 
+        return config.getBoolean("warp.sound.enabled", true); 
+    }
+    
+    public Sound warpSoundType() {
+        String key = config.getString("warp.sound.type", "BLOCK_NOTE_BLOCK_PLING");
+        try {
+            return Sound.valueOf(key.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return Sound.BLOCK_NOTE_BLOCK_PLING;
+        }
+    }
+    
+    public float warpSoundVolume() { 
+        return (float) config.getDouble("warp.sound.volume", 1.0); 
+    }
+    
+    public float warpSoundPitch() { 
+        return (float) config.getDouble("warp.sound.pitch", 1.0); 
+    }
+
+    // ========== GLOBAL SETTINGS ==========
+    public boolean globalCancelOnMove() { 
+        return config.getBoolean("global.cancel-on-move", true); 
+    }
+    
+    public int globalDefaultCooldown() { 
+        return config.getInt("global.default-cooldown", 5); 
+    }
+    
+    public int globalDefaultDelay() { 
+        return config.getInt("global.default-delay", 5); 
+    }
+
+    // ========== RANK MULTIPLIERS ==========
     public double getEffectiveCooldownMultiplier(Player player) {
         return getMultiplierForPlayer(player, "cooldown");
     }
@@ -52,8 +275,14 @@ public class ConfigManager {
     public double getEffectiveDelayMultiplier(Player player) {
         return getMultiplierForPlayer(player, "delay");
     }
-    public SpawnLocationManager getSpawnLocationManager() {
-        return spawnLocationManager;
+    
+    public double getRankMultiplier(Player player, String type) {
+        if (type.equalsIgnoreCase("cooldown")) {
+            return getEffectiveCooldownMultiplier(player);
+        } else if (type.equalsIgnoreCase("delay")) {
+            return getEffectiveDelayMultiplier(player);
+        }
+        return 1.0;
     }
 
     private double getMultiplierForPlayer(Player player, String type) {
@@ -66,7 +295,6 @@ public class ConfigManager {
                 Group bestGroup = null;
                 int bestWeight = Integer.MIN_VALUE;
 
-                // ✅ Use NodeType.INHERITANCE instead of StandardNodeTypes
                 for (InheritanceNode node : user.getNodes(NodeType.INHERITANCE)) {
                     String groupName = node.getGroupName();
                     Group group = luckPerms.getGroupManager().getGroup(groupName);
@@ -94,76 +322,134 @@ public class ConfigManager {
         return config.getDouble("rank-multipliers.default." + type, 1.0);
     }
 
-    // ---------- Title ----------
-    public boolean spawnTitleEnabled() { return config.getBoolean("spawn.title.enabled", true); }
-    public String spawnTitleMessage() { return config.getString("spawn.title.message", "Teleporting to Spawn"); }
-    public String spawnSubtitleMessage() { return config.getString("spawn.title.subtitle", "Please wait %seconds% seconds"); }
-
-    // ---------- BossBar ----------
-    public boolean spawnBossBarEnabled() { return config.getBoolean("spawn.bossbar.enabled", true); }
-    public String spawnBossBarText() { return config.getString("spawn.bossbar.text", "<gradient:light_purple:dark_purple>Teleporting...</gradient>"); }
-    public BarColor spawnBossBarColor() {
-        try { return BarColor.valueOf(config.getString("spawn.bossbar.color", "PURPLE")); }
-        catch (IllegalArgumentException e) { return BarColor.PURPLE; }
+    // ========== GUI SETTINGS ==========
+    public String warpGuiTitle() { 
+        return config.getString("gui.warp-gui-title", "<dark_gray>ᴡᴀʀᴘs"); 
     }
-    public BarStyle spawnBossBarStyle() {
-        try { return BarStyle.valueOf(config.getString("spawn.bossbar.style", "SOLID")); }
-        catch (IllegalArgumentException e) { return BarStyle.SOLID; }
+    
+    public String adminGuiTitle() { 
+        return config.getString("gui.admin-gui-title", "<dark_gray>ᴡᴀʀᴘ ᴀᴅᴍɪɴ"); 
+    }
+    
+    public int guiSize() { 
+        return config.getInt("gui.size", 54); 
+    }
+    
+    public Material topFillerMaterial() {
+        try { 
+            return Material.valueOf(config.getString("gui.top-filler-material", "MAGENTA_STAINED_GLASS_PANE").toUpperCase()); 
+        } catch (IllegalArgumentException e) { 
+            return Material.MAGENTA_STAINED_GLASS_PANE; 
+        }
+    }
+    
+    public Material middleFillerMaterial() {
+        try { 
+            return Material.valueOf(config.getString("gui.mid-filler-material", "BLACK_STAINED_GLASS_PANE").toUpperCase()); 
+        } catch (IllegalArgumentException e) { 
+            return Material.BLACK_STAINED_GLASS_PANE; 
+        }
     }
 
-    public Component getMessage(String path, String placeholderKey, String placeholderValue) {
+    // ========== SPAWN LOCATION ==========
+    public SpawnLocationManager getSpawnLocationManager() {
+        return spawnLocationManager;
+    }
+    
+    public Location getSpawnLocation() {
+        return spawnLocationManager.getLocation();
+    }
+
+    public void setSpawnLocation(Location loc) {
+        spawnLocationManager.setLocation(loc);
+    }
+    
+    public void removeSpawnLocation() {
+        spawnLocationManager.deleteLocation();
+    }
+
+    // ========== TELEPORT SETTINGS ==========
+    public boolean shouldCancelOnMove() {
+        return config.getBoolean("settings.teleport-cancel-on-move", true);
+    }
+
+    public boolean shouldCancelOnDamage() {
+        return config.getBoolean("settings.teleport-cancel-on-damage", true);
+    }
+
+    // ========== MESSAGE METHODS ==========
+    public String getRawMessage(String path) {
+        return config.getString("messages." + path, "<red>Missing message: " + path + "</red>");
+    }
+
+    public Component getMessage(String path) {
+        return parse(getRawMessage(path));
+    }
+
+    public Component getMessage(String path, String placeholder, String value) {
         String raw = getRawMessage(path);
-        raw = raw.replace("%" + placeholderKey + "%", placeholderValue);
+        if (raw != null) {
+            raw = raw.replace("%" + placeholder + "%", value);
+        }
         return parse(raw);
     }
-
-    // ---------- Particles ----------
-    public boolean spawnParticleEnabled() { return config.getBoolean("spawn.particle.enabled", true); }
-    public Particle spawnParticleType() {
-        try { return Particle.valueOf(config.getString("spawn.particle.type", "PORTAL")); }
-        catch (IllegalArgumentException e) { return Particle.PORTAL; }
-    }
-    public int spawnParticleCount() { return config.getInt("spawn.particle.count", 30); }
-
-    // ---------- Sound ----------
-    public boolean spawnSoundEnabled() { return config.getBoolean("spawn.sound.enabled", true); }
-    public Sound spawnSoundType() {
-        String key = config.getString("spawn.sound.type", "minecraft:block.note_block.pling");
-        if (!key.contains(":")) {
-            key = "minecraft:" + key.toLowerCase();
-        }
-        Sound sound = RegistryAccess.registryAccess()
-                .getRegistry(RegistryKey.SOUND_EVENT)
-                .get(NamespacedKey.fromString(key));
-        return sound != null ? sound : Sound.BLOCK_NOTE_BLOCK_PLING;
-    }
-    public float spawnSoundVolume() { return (float) config.getDouble("spawn.sound.volume", 1.0); }
-    public float spawnSoundPitch() { return (float) config.getDouble("spawn.sound.pitch", 1.0); }
-
-    // ---------- Global settings ----------
-    public boolean globalCancelOnMove() { return config.getBoolean("global.cancel-on-move", true); }
-    public int globalDefaultCooldown() { return config.getInt("global.default-cooldown", 0); }
-    public int globalDefaultDelay() { return config.getInt("global.default-delay", 0); }
-    // Spawn dust options
-    public Color spawnDustColor() {
-        String raw = config.getString("spawn.particle.dust.color", "#FF0000");
-        return parseColor(raw);
-    }
-    public float spawnDustSize() {
-        return (float) config.getDouble("spawn.particle.dust.size", 1.0);
+    
+    // ========== CONVENIENCE MESSAGE METHODS ==========
+    public Component getTeleportCancelledMoveMessage() {
+        return getMessage("teleport-cancelled-move");
     }
 
-    // Warp dust options
-    public Color warpDustColor() {
-        String raw = config.getString("warp.particle.dust.color", "#00FF00");
-        return parseColor(raw);
-    }
-    public float warpDustSize() {
-        return (float) config.getDouble("warp.particle.dust.size", 1.5);
+    public Component getTeleportCancelledDamageMessage() {
+        return getMessage("teleport-cancelled-damage");
     }
 
-    // Helper to parse a colour string
+    public Component getWarpNotFoundMessage() {
+        return getMessage("warp-not-found");
+    }
+
+    public Component getWarpCreatedMessage() {
+        return getMessage("warp-created");
+    }
+
+    public Component getWarpDeletedMessage() {
+        return getMessage("warp-deleted");
+    }
+
+    public Component getWarpEditedMessage() {
+        return getMessage("warp-edited");
+    }
+
+    public Component getCooldownMessage(int seconds) {
+        return getMessage("cooldown-active", "seconds", String.valueOf(seconds));
+    }
+
+    public Component getTeleportConfirmedMessage(String warpName) {
+        return getMessage("teleportation-confirmed", "warp", warpName);
+    }
+
+    public Component getSpawnSetMessage() {
+        return getMessage("spawn-set");
+    }
+
+    public Component getSpawnNotSetMessage() {
+        return getMessage("spawn-not-set");
+    }
+
+    public Component getSpawnDeletedMessage() {
+        return getMessage("spawn-deleted");
+    }
+
+    public Component getReloadSuccessMessage() {
+        return getMessage("reload-success");
+    }
+
+    public Component getNoPermissionMessage() {
+        return getMessage("no-permission");
+    }
+
+    // Helper to parse color
     private Color parseColor(String input) {
+        if (input == null) return Color.RED;
         if (input.startsWith("#")) {
             try {
                 int rgb = Integer.parseInt(input.substring(1), 16);
@@ -178,81 +464,6 @@ public class ConfigManager {
                 return Color.fromRGB(r, g, b);
             } catch (Exception ignored) {}
         }
-        return Color.RED; // fallback
-    }
-
-    // ---------- GUI titles ----------
-    public String warpGuiTitle() { return config.getString("gui.warp-gui-title", "<dark_gray>Warps"); }
-    public String adminGuiTitle() { return config.getString("gui.admin-gui-title", "<dark_gray>Warp Admin"); }
-    public int guiSize() { return config.getInt("gui.size", 54); }
-    public Material topFillerMaterial() {
-        try { return Material.valueOf(config.getString("gui.top-filler-material", "BLACK_STAINED_GLASS_PANE")); }
-        catch (IllegalArgumentException e) { return Material.BLACK_STAINED_GLASS_PANE; }
-    }
-    public Material middleFillerMaterial() {
-        try { return Material.valueOf(config.getString("gui.mid-filler-material", "GRAY_STAINED_GLASS_PANE")); }
-        catch (IllegalArgumentException e) { return Material.GRAY_STAINED_GLASS_PANE; }
-    }
-
-    public String getRawMessage(String path) {
-        return config.getString("messages." + path, "<red>Missing message: " + path + "</red>");
-    }
-
-    public Component getMessage(String path) {
-        return parse(getRawMessage(path));
-    }
-
-    // ---------- Warp teleport settings ----------
-    public boolean warpEnabled() { return config.getBoolean("warp.enabled", true); }
-    public boolean warpCancelOnMove() { return config.getBoolean("warp.cancel-on-move", true); }
-    public int warpDefaultCooldown() { return config.getInt("warp.cooldown", 5); }
-    public int warpDefaultDelay() { return config.getInt("warp.delay", 3); }
-
-    public boolean warpTitleEnabled() { return config.getBoolean("warp.title.enabled", true); }
-    public String warpTitleMessage() { return config.getString("warp.title.message", "<gradient:gold:yellow>Teleporting to %warp%</gradient>"); }
-    public String warpSubtitleMessage() { return config.getString("warp.title.subtitle", "Please wait %seconds% seconds"); }
-
-    public boolean warpBossBarEnabled() { return config.getBoolean("warp.bossbar.enabled", true); }
-    public String warpBossBarText() { return config.getString("warp.bossbar.text", "<gradient:gold:yellow>Teleporting...</gradient>"); }
-    public BarColor warpBossBarColor() {
-        try { return BarColor.valueOf(config.getString("warp.bossbar.color", "YELLOW")); }
-        catch (IllegalArgumentException e) { return BarColor.YELLOW; }
-    }
-    public BarStyle warpBossBarStyle() {
-        try { return BarStyle.valueOf(config.getString("warp.bossbar.style", "SOLID")); }
-        catch (IllegalArgumentException e) { return BarStyle.SOLID; }
-    }
-
-    public boolean warpParticleEnabled() { return config.getBoolean("warp.particle.enabled", true); }
-    public Particle warpParticleType() {
-        try { return Particle.valueOf(config.getString("warp.particle.type", "SPELL_WITCH")); }
-        catch (IllegalArgumentException e) { return Particle.WITCH; }
-    }
-    public int warpParticleCount() { return config.getInt("warp.particle.count", 20); }
-
-    public boolean warpSoundEnabled() { return config.getBoolean("warp.sound.enabled", true); }
-    public Sound warpSoundType() {
-        String key = config.getString("warp.sound.type", "minecraft:block.note_block.pling");
-        if (!key.contains(":")) {
-            key = "minecraft:" + key.toLowerCase();
-        }
-        Sound sound = RegistryAccess.registryAccess()
-                .getRegistry(RegistryKey.SOUND_EVENT)
-                .get(NamespacedKey.fromString(key));
-        return sound != null ? sound : Sound.BLOCK_NOTE_BLOCK_PLING;
-    }
-    public float warpSoundVolume() { return (float) config.getDouble("warp.sound.volume", 1.0); }
-    public float warpSoundPitch() { return (float) config.getDouble("warp.sound.pitch", 1.0); }
-
-    // ---------- Spawn location storage ----------
-    public Location getSpawnLocation() {
-        return spawnLocationManager.getLocation();
-    }
-
-    public void setSpawnLocation(Location loc) {
-        spawnLocationManager.setLocation(loc);
-    }
-    public void removeSpawnLocation() {
-        spawnLocationManager.deleteLocation();
+        return Color.RED;
     }
 }

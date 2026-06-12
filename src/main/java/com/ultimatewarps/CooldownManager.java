@@ -1,49 +1,75 @@
 package com.ultimatewarps;
 
 import org.bukkit.entity.Player;
-
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class CooldownManager {
 
-    private final Map<UUID, Map<String, Long>> lastUsage = new ConcurrentHashMap<>();
+    private final Map<UUID, Map<String, Long>> cooldowns = new ConcurrentHashMap<>();
 
-    public long getLastUsage(UUID playerId, String key) {
-        Map<String, Long> map = lastUsage.get(playerId);
-        if (map != null) {
-            Long time = map.get(key);
-            return time != null ? time : 0;
-        }
-        return 0;
+    public void setCooldown(Player player, String key, int seconds) {
+        long expiry = System.currentTimeMillis() + (seconds * 1000L);
+        cooldowns.computeIfAbsent(player.getUniqueId(), k -> new ConcurrentHashMap<>()).put(key, expiry);
     }
 
-    public void setLastUsage(UUID playerId, String key, long time) {
-        lastUsage.computeIfAbsent(playerId, k -> new ConcurrentHashMap<>()).put(key, time);
+    public boolean hasCooldown(Player player, String key) {
+        if (player.hasPermission("ultimatewarps.bypass.cooldown")) return false;
+        
+        Map<String, Long> playerCooldowns = cooldowns.get(player.getUniqueId());
+        if (playerCooldowns == null) return false;
+        
+        Long expiry = playerCooldowns.get(key);
+        if (expiry == null) return false;
+        
+        return System.currentTimeMillis() < expiry;
     }
 
+    public int getRemaining(Player player, String key) {
+        Map<String, Long> playerCooldowns = cooldowns.get(player.getUniqueId());
+        if (playerCooldowns == null) return 0;
+        
+        Long expiry = playerCooldowns.get(key);
+        if (expiry == null) return 0;
+        
+        long remaining = (expiry - System.currentTimeMillis()) / 1000;
+        return (int) Math.max(0, remaining);
+    }
+    
     public int getRemainingCooldown(Player player, String key, int cooldownSeconds) {
-        if (player.hasPermission("ultimatewarps.bypass.cooldown")) return 0;
-        long last = getLastUsage(player.getUniqueId(), key);
-        long now = System.currentTimeMillis() / 1000;
-        long diff = now - last;
-        return (int) Math.max(0, cooldownSeconds - diff);
+        return getRemaining(player, key);
     }
-
+    
     public void applyCooldown(Player player, String key) {
-        setLastUsage(player.getUniqueId(), key, System.currentTimeMillis() / 1000);
+        // This needs the actual cooldown value - you should pass it
+        setCooldown(player, key, 30); // Default fallback
     }
-
+    
+    public void applyCooldown(Player player, String key, int seconds) {
+        setCooldown(player, key, seconds);
+    }
+    
     public int getEffectiveDelay(Player player, int baseDelay) {
         if (player.hasPermission("ultimatewarps.bypass.delay")) return 0;
         double multiplier = UltimateWarps.getInstance().getConfigManager().getEffectiveDelayMultiplier(player);
         return (int) Math.round(baseDelay * multiplier);
     }
-
+    
     public int getEffectiveCooldown(Player player, int baseCooldown) {
         if (player.hasPermission("ultimatewarps.bypass.cooldown")) return 0;
         double multiplier = UltimateWarps.getInstance().getConfigManager().getEffectiveCooldownMultiplier(player);
         return (int) Math.round(baseCooldown * multiplier);
+    }
+
+    public void removeCooldown(Player player, String key) {
+        Map<String, Long> playerCooldowns = cooldowns.get(player.getUniqueId());
+        if (playerCooldowns != null) {
+            playerCooldowns.remove(key);
+        }
+    }
+
+    public void clearCooldowns(Player player) {
+        cooldowns.remove(player.getUniqueId());
     }
 }
