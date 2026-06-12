@@ -393,6 +393,23 @@ public class ConfigManager {
         }
         return parse(raw);
     }
+    // Teleport on every join
+    public boolean spawnTeleportOnEveryJoin() {
+        return config.getBoolean("spawn.teleport-on-every-join.enabled", false);
+    }
+
+    public String getSpawnTeleportOnEveryJoinMessage() {
+        return config.getString("spawn.teleport-on-every-join.message", "<gradient:#55ff55:#00aa00>Welcome back! You have been teleported to spawn.</gradient>");
+    }
+
+    // Teleport on first join only
+    public boolean spawnTeleportOnFirstJoin() {
+        return config.getBoolean("spawn.teleport-on-first-join.enabled", true);
+    }
+
+    public String getSpawnTeleportOnFirstJoinMessage() {
+        return config.getString("spawn.teleport-on-first-join.message", "<gradient:#55ff55:#00aa00>Welcome to the server! You have been teleported to spawn.</gradient>");
+    }
     
     // ========== CONVENIENCE MESSAGE METHODS ==========
     public Component getTeleportCancelledMoveMessage() {

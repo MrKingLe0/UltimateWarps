@@ -1,71 +1,113 @@
 package com.ultimatewarps;
 
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.World;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.Player;
 
 import java.io.File;
-import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 
 public class SpawnLocationManager {
 
     private final UltimateWarps plugin;
-    private final File file;
-    private YamlConfiguration config;
+    private Location cachedLocation;
+    private final Map<UUID, Location> pendingSpawnTeleports = new HashMap<>();
+    private final File spawnDataFile;
+    private YamlConfiguration spawnData;
 
     public SpawnLocationManager(UltimateWarps plugin) {
         this.plugin = plugin;
-        this.file = new File(plugin.getDataFolder(), "spawn.yml");
-        load();
+        this.spawnDataFile = new File(plugin.getDataFolder(), "spawn.yml");
+        loadSpawnData();
     }
 
-    public void load() {
-        if (file.exists()) {
-            config = YamlConfiguration.loadConfiguration(file);
-        } else {
-            config = new YamlConfiguration();
-            save();
+    private void loadSpawnData() {
+        if (!spawnDataFile.exists()) {
+            spawnData = new YamlConfiguration();
+            return;
+        }
+        spawnData = YamlConfiguration.loadConfiguration(spawnDataFile);
+        
+        // Load cached spawn location
+        if (spawnData.contains("spawn-location")) {
+            cachedLocation = (Location) spawnData.get("spawn-location");
+        }
+        
+        // Load pending teleports
+        if (spawnData.contains("pending-spawn-teleports")) {
+            for (String uuidStr : spawnData.getConfigurationSection("pending-spawn-teleports").getKeys(false)) {
+                try {
+                    UUID uuid = UUID.fromString(uuidStr);
+                    Location loc = (Location) spawnData.get("pending-spawn-teleports." + uuidStr);
+                    if (loc != null) {
+                        pendingSpawnTeleports.put(uuid, loc);
+                    }
+                } catch (IllegalArgumentException e) {
+                    plugin.getLogger().warning("Invalid UUID in spawn.yml: " + uuidStr);
+                }
+            }
         }
     }
 
-    public void save() {
+    private void saveSpawnData() {
         try {
-            config.save(file);
-        } catch (IOException e) {
-            plugin.getLogger().severe("Could not save spawn.yml: " + e.getMessage());
+            spawnData.save(spawnDataFile);
+        } catch (Exception e) {
+            plugin.getLogger().warning("Could not save spawn data: " + e.getMessage());
         }
     }
 
     public Location getLocation() {
-        if (!config.contains("world")) return null;
-        World world = Bukkit.getWorld(config.getString("world"));
-        if (world == null) return null;
-        return new Location(world,
-                config.getDouble("x"),
-                config.getDouble("y"),
-                config.getDouble("z"),
-                (float) config.getDouble("yaw"),
-                (float) config.getDouble("pitch"));
+        return cachedLocation;
     }
 
     public void setLocation(Location loc) {
-        config.set("world", loc.getWorld().getName());
-        config.set("x", loc.getX());
-        config.set("y", loc.getY());
-        config.set("z", loc.getZ());
-        config.set("yaw", loc.getYaw());
-        config.set("pitch", loc.getPitch());
-        save();
+        this.cachedLocation = loc;
+        spawnData.set("spawn-location", loc);
+        saveSpawnData();
     }
 
     public void deleteLocation() {
-        config.set("world", null);
-        config.set("x", null);
-        config.set("y", null);
-        config.set("z", null);
-        config.set("yaw", null);
-        config.set("pitch", null);
-        save();
+        this.cachedLocation = null;
+        spawnData.set("spawn-location", null);
+        saveSpawnData();
+    }
+    
+    // ========== PENDING SPAWN TELEPORT METHODS ==========
+    
+    public void setPendingSpawnTeleport(UUID playerId, Location spawn) {
+        pendingSpawnTeleports.put(playerId, spawn);
+        spawnData.set("pending-spawn-teleports." + playerId.toString(), spawn);
+        saveSpawnData();
+    }
+    
+    public Location getPendingSpawnTeleport(UUID playerId) {
+        Location loc = pendingSpawnTeleports.remove(playerId);
+        spawnData.set("pending-spawn-teleports." + playerId.toString(), null);
+        saveSpawnData();
+        return loc;
+    }
+    
+    public boolean hasPendingSpawnTeleport(UUID playerId) {
+        return pendingSpawnTeleports.containsKey(playerId);
+    }
+    
+    public void removePendingSpawnTeleport(UUID playerId) {
+        pendingSpawnTeleports.remove(playerId);
+        spawnData.set("pending-spawn-teleports." + playerId.toString(), null);
+        saveSpawnData();
+    }
+    
+    // ========== FIRST JOIN TRACKING METHODS ==========
+    
+    public boolean hasJoinedBefore(UUID playerId) {
+        return spawnData.contains("joined-before." + playerId.toString());
+    }
+    
+    public void setJoinedBefore(UUID playerId) {
+        spawnData.set("joined-before." + playerId.toString(), true);
+        saveSpawnData();
     }
 }

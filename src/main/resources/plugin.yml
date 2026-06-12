@@ -11,6 +11,11 @@ commands:
   spawn:
     description: Teleport to spawn.
     usage: /spawn
+  spawnforce:
+    description: Force teleport a player to spawn.
+    usage: /spawnforce <player>
+    permission: ultimatewarps.admin
+    aliases: [forcespawn]
   setspawn:
     description: Set the spawn location.
     usage: /setspawn

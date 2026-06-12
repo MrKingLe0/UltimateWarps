@@ -5,10 +5,12 @@ import com.ultimatewarps.gui.AdminGUI;
 import com.ultimatewarps.gui.WarpGUI;
 import com.ultimatewarps.listeners.ChatListener;
 import com.ultimatewarps.listeners.GUIListener;
+import com.ultimatewarps.listeners.JoinListener;
 import com.ultimatewarps.listeners.MoveListener;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -26,7 +28,9 @@ public final class UltimateWarps extends JavaPlugin {
     public void onEnable() {
         instance = this;
         saveDefaultConfig();
-        saveResource("warps-gui.yml", false);
+        if (!new File(getDataFolder(), "warps-gui.yml").exists()) {
+            saveResource("warps-gui.yml", false);
+        }
         configManager = new ConfigManager(this);
         warpManager = new WarpManager(this);
         warpManager.loadWarps();
@@ -82,12 +86,14 @@ public final class UltimateWarps extends JavaPlugin {
         getCommand("warpsadmin").setExecutor(new WarpsAdminCommand());
         getCommand("ultimatewarps").setExecutor(new UltimateWarpsCommand());
         getCommand("ultimatewarps").setTabCompleter(new UltimateWarpsCommand());
+        getCommand("spawnforce").setExecutor(new SpawnForceCommand(this));
     }
 
     private void registerListeners() {
         Bukkit.getPluginManager().registerEvents(new ChatListener(), this);
         Bukkit.getPluginManager().registerEvents(new GUIListener(), this);
         Bukkit.getPluginManager().registerEvents(new MoveListener(), this);
+        Bukkit.getPluginManager().registerEvents(new JoinListener(this), this);
     }
 
     public static UltimateWarps getInstance() {

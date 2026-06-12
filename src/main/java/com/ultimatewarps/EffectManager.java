@@ -55,22 +55,28 @@ public class EffectManager {
     
     public void playTeleportEffect(Player player, String type) {
         Location loc = player.getLocation();
-        
         ConfigManager config = plugin.getConfigManager();
         
+        boolean isSpawn = type.equalsIgnoreCase("Spawn");
+        
         // Play sound
-        if (config.spawnSoundEnabled()) {
-            playSound(player, config.spawnSoundType(), config.spawnSoundVolume(), config.spawnSoundPitch());
+        boolean soundEnabled = isSpawn ? config.spawnSoundEnabled() : config.warpSoundEnabled();
+        if (soundEnabled) {
+            Sound soundType = isSpawn ? config.spawnSoundType() : config.warpSoundType();
+            float volume = isSpawn ? config.spawnSoundVolume() : config.warpSoundVolume();
+            float pitch = isSpawn ? config.spawnSoundPitch() : config.warpSoundPitch();
+            playSound(player, soundType, volume, pitch);
         }
         
         // Play particles
-        if (config.spawnParticleEnabled()) {
-            Particle particle = config.spawnParticleType();
-            int count = config.spawnParticleCount();
+        boolean particleEnabled = isSpawn ? config.spawnParticleEnabled() : config.warpParticleEnabled();
+        if (particleEnabled) {
+            Particle particle = isSpawn ? config.spawnParticleType() : config.warpParticleType();
+            int count = isSpawn ? config.spawnParticleCount() : config.warpParticleCount();
             
             if (particle == Particle.DUST) {
-                Color color = config.spawnDustColor();
-                float size = config.spawnDustSize();
+                Color color = isSpawn ? config.spawnDustColor() : config.warpDustColor();
+                float size = isSpawn ? config.spawnDustSize() : config.warpDustSize();
                 playParticle(player, particle, count, new DustOptions(color, size));
             } else {
                 playParticle(player, particle, count);

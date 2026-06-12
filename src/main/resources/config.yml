@@ -40,6 +40,14 @@ spawn:
     volume: 1.0
     pitch: 1.0
 
+  teleport-on-every-join:
+    enabled: false  # Teleports player to spawn EVERY time they join
+    message: "<gradient:#5000FF:#00aa00>ᴡᴇʟᴄᴏᴍᴇ ʙᴀᴄᴋ! ʏᴏᴜ ʜᴀᴠᴇ ʙᴇᴇɴ ᴛᴇʟᴇᴘᴏʀᴛᴇᴅ ᴛᴏ sᴘᴀᴡɴ.</gradient>"
+  
+  teleport-on-first-join:
+    enabled: true  # Teleports player to spawn ONLY on their first join ever
+    message: "<gradient:#5000FF:#00aa00>ᴡᴇʟᴄᴏᴍᴇ ᴛᴏ ᴛʜᴇ sᴇʀᴠᴇʀ! ʏᴏᴜ ʜᴀᴠᴇ ʙᴇᴇɴ ᴛᴇʟᴇᴘᴏʀᴛᴇᴅ ᴛᴏ sᴘᴀᴡɴ.</gradient>"
+
 # warp settings
 warp:
   enabled: true
