@@ -29,6 +29,11 @@ public class AdminGUI implements InventoryHolder {
     private final ConfigManager config;
     private final MiniMessage miniMessage = MiniMessage.miniMessage();
     private static final Map<Inventory, Warp> editInventories = new HashMap<>();
+    // Bug fix: getInventory() used to unconditionally return null, breaking the
+    // InventoryHolder contract (Bukkit internals and other plugins may call
+    // holder.getInventory() and NPE on the result). Track whichever inventory this
+    // holder most recently opened and return that instead.
+    private Inventory currentInventory;
 
     public AdminGUI(Player player) {
         this.player = player;
@@ -42,6 +47,7 @@ public class AdminGUI implements InventoryHolder {
         this.page = page;
         Component title = miniMessage.deserialize(config.adminGuiTitle());
         Inventory inv = Bukkit.createInventory(this, size, title);
+        this.currentInventory = inv;
         fillBorders(inv);
 
         int start = page * warpSlots;
@@ -103,6 +109,13 @@ public class AdminGUI implements InventoryHolder {
                     open(page);
                     return;
                 }
+                if (!UltimateWarps.getInstance().getWarpManager().isValidWarpName(name)) {
+                    player.sendMessage(Component.text(
+                        "Invalid warp name. Use only letters, numbers, underscores and hyphens (max 32 characters).",
+                        NamedTextColor.RED));
+                    open(page);
+                    return;
+                }
                 Warp newWarp = new Warp(name, player.getLocation());
                 newWarp.setCooldown(config.globalDefaultCooldown());
                 newWarp.setDelay(config.globalDefaultDelay());
@@ -135,6 +148,7 @@ public class AdminGUI implements InventoryHolder {
     private void openWarpEditMenu(Warp warp) {
         Component title = miniMessage.deserialize("<dark_gray>Edit: " + warp.getName());
         Inventory inv = Bukkit.createInventory(this, 27, title);
+        this.currentInventory = inv;
         editInventories.put(inv, warp);
 
         inv.setItem(10, createEditItem(HeadUtils.ENABLED_ICON, "§e§lᴛᴏɢɢʟᴇ ᴇɴᴀʙʟᴇᴅ",
@@ -339,7 +353,7 @@ public class AdminGUI implements InventoryHolder {
         }
     }
 
-    @Override public Inventory getInventory() { return null; }
+    @Override public Inventory getInventory() { return currentInventory; }
     public static Warp getEditingWarp(Inventory inv) { return editInventories.get(inv); }
     public static void removeEditingInventory(Inventory inv) { editInventories.remove(inv); }
 }

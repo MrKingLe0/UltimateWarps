@@ -15,13 +15,14 @@ import java.util.List;
 public class UltimateWarpsCommand implements CommandExecutor, TabCompleter {
 
     private static final List<String> SUBCOMMANDS = List.of(
-            "reload", "spawn", "setspawn","delspawn", "warp", "setwarp", "delwarp", "warpsadmin", "help"
+            "reload", "spawn", "setspawn","delspawn", "warp", "setwarp", "delwarp", "warpsadmin", "spawnforce", "help"  // ADDED spawnforce
     );
 
     @Override
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
         if (args.length == 0) {
-            sender.sendMessage(Component.text("§eUltimateWarps v1.0 - Use /" + label + " help", NamedTextColor.YELLOW));
+            String version = UltimateWarps.getInstance().getDescription().getVersion();
+            sender.sendMessage(Component.text("§eUltimateWarps v" + version + " - Use /" + label + " help", NamedTextColor.YELLOW));
             return true;
         }
 
@@ -103,6 +104,19 @@ public class UltimateWarpsCommand implements CommandExecutor, TabCompleter {
                 new WarpsAdminCommand().onCommand(sender, null, null, new String[0]);
                 break;
 
+            // ========== ADD THIS NEW CASE ==========
+            case "spawnforce":
+                if (!sender.hasPermission("ultimatewarps.admin")) {
+                    sender.sendMessage(UltimateWarps.getInstance().getConfigManager().getMessage("no-permission"));
+                    return true;
+                }
+                if (args.length < 2) {
+                    sender.sendMessage(Component.text("Usage: /" + label + " spawnforce <player>", NamedTextColor.RED));
+                    return true;
+                }
+                new SpawnForceCommand(UltimateWarps.getInstance()).onCommand(sender, null, null, new String[]{args[1]});
+                break;
+
             case "help":
                 sendHelp(sender, label);
                 break;
@@ -124,6 +138,7 @@ public class UltimateWarpsCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(Component.text("§b/" + label + " ꜱᴇᴛᴡᴀʀᴘ <ɴᴀᴍᴇ> §7- ᴄʀᴇᴀᴛᴇ ᴀ ɴᴇᴡ ᴡᴀʀᴘ"));
         sender.sendMessage(Component.text("§b/" + label + " ᴅᴇʟᴡᴀʀᴘ <ɴᴀᴍᴇ> §7- ᴅᴇʟᴇᴛᴇ ᴀ ᴡᴀʀᴘ"));
         sender.sendMessage(Component.text("§b/" + label + " ᴡᴀʀᴘꜱᴀᴅᴍɪɴ §7- ᴏᴘᴇɴ ᴀᴅᴍɪɴ ɢᴜɪ"));
+        sender.sendMessage(Component.text("§b/" + label + " ꜱᴘᴀᴡɴꜰᴏʀᴄᴇ <ᴘʟᴀʏᴇʀ> §7- ꜰᴏʀᴄᴇ ᴛᴇʟᴇᴘᴏʀᴛ ᴀ ᴘʟᴀʏᴇʀ ᴛᴏ ꜱᴘᴀᴡɴ")); // ADDED
         sender.sendMessage(Component.text("§b/" + label + " ʜᴇʟᴘ §7- ꜱʜᴏᴡ ᴛʜɪꜱ ʜᴇʟᴘ"));
     }
 
@@ -142,7 +157,7 @@ public class UltimateWarpsCommand implements CommandExecutor, TabCompleter {
             return completions;
         }
 
-        // For subcommands that need a warp name
+        // For subcommands that need a warp name or player name
         if (args.length == 2) {
             String sub = args[0].toLowerCase();
             if (sub.equals("warp") || sub.equals("delwarp")) {
@@ -150,6 +165,15 @@ public class UltimateWarpsCommand implements CommandExecutor, TabCompleter {
                 for (Warp warp : UltimateWarps.getInstance().getWarpManager().getAllWarps()) {
                     if (warp.getName().toLowerCase().startsWith(args[1].toLowerCase())) {
                         completions.add(warp.getName());
+                    }
+                }
+                return completions;
+            }
+            // ADD THIS for spawnforce - suggest online players
+            if (sub.equals("spawnforce")) {
+                for (Player online : org.bukkit.Bukkit.getOnlinePlayers()) {
+                    if (online.getName().toLowerCase().startsWith(args[1].toLowerCase())) {
+                        completions.add(online.getName());
                     }
                 }
                 return completions;
@@ -164,7 +188,7 @@ public class UltimateWarpsCommand implements CommandExecutor, TabCompleter {
 
     private boolean hasSubPermission(CommandSender sender, String sub) {
         return switch (sub) {
-            case "reload", "setspawn","delspawn", "setwarp", "delwarp", "warpsadmin" -> sender.hasPermission("ultimatewarps.admin");
+            case "reload", "setspawn","delspawn", "setwarp", "delwarp", "warpsadmin", "spawnforce" -> sender.hasPermission("ultimatewarps.admin");  // ADDED spawnforce
             case "spawn" -> sender.hasPermission("ultimatewarps.spawn");
             case "warp" -> sender.hasPermission("ultimatewarps.warp.*") || sender.hasPermission("ultimatewarps.admin");
             default -> true; // help

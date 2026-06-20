@@ -3,7 +3,7 @@ version: ${version}
 main: com.ultimatewarps.UltimateWarps
 api-version: '1.21'
 softdepend: [LuckPerms]
-folia-supported: true
+folia-supported: false
 author: King_Le0_
 description: Advanced warp and spawn management with GUIs and teleport effects.
 

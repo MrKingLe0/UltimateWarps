@@ -140,6 +140,10 @@ public class EffectManager {
                 bossBar.setProgress((double) time / seconds);
                 
                 // Play particle effect
+                // Bug fix: the warp branch was only guarded by config.warpParticleEnabled(),
+                // with no check that isSpawn was actually false. That meant a spawn teleport
+                // with spawn particles disabled would fall through and incorrectly play warp
+                // particles instead of none.
                 if (isSpawn && config.spawnParticleEnabled()) {
                     Particle particle = config.spawnParticleType();
                     if (particle == Particle.DUST) {
@@ -147,7 +151,7 @@ public class EffectManager {
                     } else {
                         playParticle(player, particle, 5);
                     }
-                } else if (config.warpParticleEnabled()) {
+                } else if (!isSpawn && config.warpParticleEnabled()) {
                     Particle particle = config.warpParticleType();
                     if (particle == Particle.DUST) {
                         playParticle(player, particle, 5, new DustOptions(config.warpDustColor(), config.warpDustSize()));

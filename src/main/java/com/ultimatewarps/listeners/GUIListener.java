@@ -2,7 +2,6 @@ package com.ultimatewarps.listeners;
 
 import com.ultimatewarps.Warp;
 import com.ultimatewarps.gui.AdminGUI;
-import com.ultimatewarps.gui.WarpGUI;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -13,22 +12,17 @@ import org.bukkit.inventory.InventoryHolder;
 
 public class GUIListener implements Listener {
 
+    // Bug fix: WarpGUI creates its inventory with a null InventoryHolder
+    // (Bukkit.createInventory(null, ...)), so `holder instanceof WarpGUI` could never
+    // match here - that branch was permanently dead code. WarpGUI already registers its
+    // own Listener and handles its own clicks via inventory-reference equality, so this
+    // class only needs to handle AdminGUI, which does pass itself as the holder.
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
         if (!(event.getWhoClicked() instanceof Player player)) return;
         InventoryHolder holder = event.getInventory().getHolder();
 
-        if (holder instanceof WarpGUI warpGui) {
-            // Warp GUI – allow interaction in bottom inventory (player's own)
-            if (event.getRawSlot() >= event.getInventory().getSize()) {
-                return; // let the click pass through
-            }
-            // Cancel top inventory clicks and handle
-            event.setCancelled(true);
-            if (event.getCurrentItem() != null) {
-                warpGui.handleClick(event.getRawSlot());
-            }
-        } else if (holder instanceof AdminGUI adminGui) {
+        if (holder instanceof AdminGUI adminGui) {
             Inventory inv = event.getInventory();
             int rawSlot = event.getRawSlot();
             // If click is in the player's own inventory (bottom part), allow it

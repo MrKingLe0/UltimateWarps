@@ -8,6 +8,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 
 public class JoinListener implements Listener {
 
@@ -16,6 +17,23 @@ public class JoinListener implements Listener {
 
     public JoinListener(UltimateWarps plugin) {
         this.plugin = plugin;
+    }
+
+    // Improvement: WarpCommand/SpawnCommand kept small per-player anti-spam maps
+    // (cooldown-message throttling, command-spam throttling) that were never cleaned up
+    // when a player disconnected, so they grew forever on a long-running server. These
+    // are pure UX throttles with no gameplay stakes, so it's safe to just drop them on
+    // quit (unlike actual cooldowns, which are handled separately via a periodic sweep
+    // in CooldownManager so quitting can't be used to dodge an active cooldown).
+    @EventHandler
+    public void onPlayerQuit(PlayerQuitEvent event) {
+        java.util.UUID uuid = event.getPlayer().getUniqueId();
+        if (plugin.getWarpCommand() != null) {
+            plugin.getWarpCommand().clearPlayer(uuid);
+        }
+        if (plugin.getSpawnCommand() != null) {
+            plugin.getSpawnCommand().clearPlayer(uuid);
+        }
     }
 
     @EventHandler

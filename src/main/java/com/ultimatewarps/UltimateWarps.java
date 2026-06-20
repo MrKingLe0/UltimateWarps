@@ -39,6 +39,7 @@ public final class UltimateWarps extends JavaPlugin {
 
         registerCommands();
         registerListeners();
+        Bukkit.getScheduler().runTaskTimer(this, () -> cooldownManager.purgeExpired(), 20L * 60 * 10, 20L * 60 * 10);
 
         Bukkit.getConsoleSender().sendMessage(
                 "\n" +
@@ -58,10 +59,9 @@ public final class UltimateWarps extends JavaPlugin {
         if (warpManager != null) {
             warpManager.saveAllWarps();
         }
-        activeTeleports.values().forEach(TeleportTask::cancel);
+        new java.util.ArrayList<>(activeTeleports.values()).forEach(TeleportTask::cancel);
         activeTeleports.clear();
         
-        instance = null;
         Bukkit.getConsoleSender().sendMessage(
                 "\n"+
                 "§d ==============================================================================\n" +
@@ -73,19 +73,28 @@ public final class UltimateWarps extends JavaPlugin {
                 "§d =============================================================================="
         );
         Bukkit.getConsoleSender().sendMessage("§cUltimateWarps disabled!");
+        instance = null;
     }
 
+    private WarpCommand warpCommand;
+    private SpawnCommand spawnCommand;
+
     private void registerCommands() {
-        getCommand("spawn").setExecutor(new SpawnCommand(this));
+        spawnCommand = new SpawnCommand(this);
+        getCommand("spawn").setExecutor(spawnCommand);
         getCommand("setspawn").setExecutor(new SetSpawnCommand());
         getCommand("delspawn").setExecutor(new DelSpawnCommand());
-        getCommand("warp").setExecutor(new WarpCommand(this));
-        getCommand("warp").setTabCompleter(new WarpCommand(this));
+        warpCommand = new WarpCommand(this);
+        getCommand("warp").setExecutor(warpCommand);
+        getCommand("warp").setTabCompleter(warpCommand);
         getCommand("setwarp").setExecutor(new SetWarpCommand());
-        getCommand("delwarp").setExecutor(new DelWarpCommand());
+        DelWarpCommand delWarpCommand = new DelWarpCommand();
+        getCommand("delwarp").setExecutor(delWarpCommand);
+        getCommand("delwarp").setTabCompleter(delWarpCommand);
         getCommand("warpsadmin").setExecutor(new WarpsAdminCommand());
-        getCommand("ultimatewarps").setExecutor(new UltimateWarpsCommand());
-        getCommand("ultimatewarps").setTabCompleter(new UltimateWarpsCommand());
+        UltimateWarpsCommand uwarpsCommand = new UltimateWarpsCommand();
+        getCommand("ultimatewarps").setExecutor(uwarpsCommand);
+        getCommand("ultimatewarps").setTabCompleter(uwarpsCommand);
         getCommand("spawnforce").setExecutor(new SpawnForceCommand(this));
     }
 
@@ -116,11 +125,21 @@ public final class UltimateWarps extends JavaPlugin {
         return effectManager;
     }
 
+    public WarpCommand getWarpCommand() {
+        return warpCommand;
+    }
+
+    public SpawnCommand getSpawnCommand() {
+        return spawnCommand;
+    }
+
     public Map<UUID, TeleportTask> getActiveTeleports() {
         return activeTeleports;
     }
 
     public void reloadPlugin() {
+        WarpGUI.unregisterAll();
+
         reloadConfig();
         configManager.reload();
         warpManager.loadWarps();

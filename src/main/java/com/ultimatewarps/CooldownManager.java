@@ -37,29 +37,16 @@ public class CooldownManager {
         return (int) Math.max(0, remaining);
     }
     
-    public int getRemainingCooldown(Player player, String key, int cooldownSeconds) {
-        return getRemaining(player, key);
-    }
-    
-    public void applyCooldown(Player player, String key) {
-        // This needs the actual cooldown value - you should pass it
-        setCooldown(player, key, 30); // Default fallback
-    }
-    
+    // Improvement: removed several unused methods that were dead weight or active
+    // footguns:
+    //  - applyCooldown(player, key) silently applied a hardcoded 30-second cooldown
+    //    regardless of the warp/spawn's actual configured cooldown - anything that
+    //    called it without realizing this would set the wrong cooldown with no warning.
+    //  - getEffectiveDelay/getEffectiveCooldown/getRemainingCooldown duplicated logic
+    //    that SpawnCommand/WarpCommand already do correctly inline (rank multiplier
+    //    applied at the call site), and were never actually called from anywhere.
     public void applyCooldown(Player player, String key, int seconds) {
         setCooldown(player, key, seconds);
-    }
-    
-    public int getEffectiveDelay(Player player, int baseDelay) {
-        if (player.hasPermission("ultimatewarps.bypass.delay")) return 0;
-        double multiplier = UltimateWarps.getInstance().getConfigManager().getEffectiveDelayMultiplier(player);
-        return (int) Math.round(baseDelay * multiplier);
-    }
-    
-    public int getEffectiveCooldown(Player player, int baseCooldown) {
-        if (player.hasPermission("ultimatewarps.bypass.cooldown")) return 0;
-        double multiplier = UltimateWarps.getInstance().getConfigManager().getEffectiveCooldownMultiplier(player);
-        return (int) Math.round(baseCooldown * multiplier);
     }
 
     public void removeCooldown(Player player, String key) {
@@ -71,5 +58,23 @@ public class CooldownManager {
 
     public void clearCooldowns(Player player) {
         cooldowns.remove(player.getUniqueId());
+    }
+
+    /**
+     * Improvement: cooldown entries are just expiry timestamps, so once they pass they
+     * become inert but still sit in memory forever - on a long-running server with many
+     * unique players this slowly leaks. Deliberately NOT wiping a player's cooldowns on
+     * quit, since that would let someone dodge an active cooldown just by disconnecting
+     * and rejoining. Instead this periodically sweeps out only entries that have already
+     * expired, which is safe to do at any time. Call this on a repeating timer (e.g. once
+     * every few minutes) from onEnable().
+     */
+    public void purgeExpired() {
+        long now = System.currentTimeMillis();
+        cooldowns.entrySet().removeIf(entry -> {
+            Map<String, Long> playerCooldowns = entry.getValue();
+            playerCooldowns.values().removeIf(expiry -> expiry < now);
+            return playerCooldowns.isEmpty();
+        });
     }
 }

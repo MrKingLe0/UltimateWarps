@@ -5,9 +5,15 @@ import net.kyori.adventure.text.Component;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 
-public class DelWarpCommand implements CommandExecutor {
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
+
+public class DelWarpCommand implements CommandExecutor, TabCompleter {
     @Override
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
         if (!(sender instanceof Player player)) {
@@ -31,5 +37,22 @@ public class DelWarpCommand implements CommandExecutor {
         wm.removeWarp(name);
         player.sendMessage(UltimateWarps.getInstance().getConfigManager().getMessage("warp-deleted").replaceText(b -> b.matchLiteral("%name%").replacement(name)));
         return true;
+    }
+
+    // Improvement: no tab-completion meant admins had to type the full warp name from
+    // memory, with no feedback until after hitting enter - a typo would just bounce off
+    // "warp not found" with no hint about what was actually available, or worse, silently
+    // delete a different similarly-named warp than intended.
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        if (args.length == 1 && sender.hasPermission("ultimatewarps.admin")) {
+            String partial = args[0].toLowerCase();
+            return UltimateWarps.getInstance().getWarpManager().getAllWarps().stream()
+                    .map(Warp::getName)
+                    .filter(n -> n.toLowerCase().startsWith(partial))
+                    .sorted()
+                    .collect(Collectors.toList());
+        }
+        return Collections.emptyList();
     }
 }

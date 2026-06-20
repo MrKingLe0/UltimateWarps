@@ -24,6 +24,12 @@ public class SetWarpCommand implements CommandExecutor {
         }
         String name = args[0];
         WarpManager wm = UltimateWarps.getInstance().getWarpManager();
+        if (!wm.isValidWarpName(name)) {
+            player.sendMessage(Component.text(
+                "Invalid warp name. Use only letters, numbers, underscores and hyphens (max 32 characters).",
+                net.kyori.adventure.text.format.NamedTextColor.RED));
+            return true;
+        }
         if (wm.getWarp(name) != null) {
             player.sendMessage(Component.text("A warp with that name already exists.", net.kyori.adventure.text.format.NamedTextColor.RED));
             return true;

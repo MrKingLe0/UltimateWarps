@@ -13,6 +13,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -50,30 +51,53 @@ public class WarpGUI implements Listener {
     // Button positions and items
     private Map<String, ButtonConfig> buttons;
     
-    // Store custom item slots to make them non-clickable
+    // Store custom item slots
     private Set<Integer> customItemSlots = new HashSet<>();
+
+    // Bug fix: slots that actually hold a real warp item on the current page, as opposed
+    // to a warp-slot that's merely empty/filled with a placeholder. Used so custom items
+    // and buttons can correctly claim genuinely-empty warp slots without ever overwriting
+    // an actual warp icon.
+    private Set<Integer> occupiedWarpSlots = new HashSet<>();
     
-    // Sound cooldown to prevent multiple sounds
+    // Cooldowns - 400ms (0.4 seconds) per player
     private final Map<UUID, Long> lastSoundTime = new HashMap<>();
+    private final Map<UUID, Long> lastClickTime = new HashMap<>();
+    private final Map<UUID, Long> lastPageChangeTime = new HashMap<>();
     
-    // Prevent duplicate listener registration
-    private static boolean listenerRegistered = false;
+    // Track active instances
+    private static final Set<WarpGUI> activeInstances = new HashSet<>();
+    private static final Map<UUID, WarpGUI> OPEN_GUIS = new HashMap<>();
     
     public WarpGUI(UltimateWarps plugin, Player player) {
         this.plugin = plugin;
         this.player = player;
         this.warps = new ArrayList<>(plugin.getWarpManager().getAccessibleWarps(player));
         loadGuiConfig();
-        
-        // Only register once
-        if (!listenerRegistered) {
-            plugin.getServer().getPluginManager().registerEvents(this, plugin);
-            listenerRegistered = true;
-        }
+        plugin.getServer().getPluginManager().registerEvents(this, plugin);
+        activeInstances.add(this);
     }
     
     public WarpGUI(Player player) {
         this(UltimateWarps.getInstance(), player);
+    }
+    public static WarpGUI getOrCreate(UltimateWarps plugin, Player player) {
+        return OPEN_GUIS.computeIfAbsent(
+            player.getUniqueId(),
+            uuid -> new WarpGUI(plugin, player)
+        );
+    }
+    
+    public void unregister() {
+        org.bukkit.event.HandlerList.unregisterAll(this);
+        activeInstances.remove(this);
+    }
+    
+    public static void unregisterAll() {
+        for (WarpGUI gui : new ArrayList<>(activeInstances)) {
+            gui.unregister();
+        }
+        activeInstances.clear();
     }
     
     private boolean isValidSlot(int slot) {
@@ -85,6 +109,11 @@ public class WarpGUI implements Listener {
         open();
     }
     
+    public void open() {
+        createGUI();
+        player.openInventory(gui);
+    }
+    
     private void loadGuiConfig() {
         File guiFile = new File(plugin.getDataFolder(), "warps-gui.yml");
         if (!guiFile.exists()) {
@@ -92,7 +121,6 @@ public class WarpGUI implements Listener {
         }
         guiConfig = YamlConfiguration.loadConfiguration(guiFile);
         
-        // Load GUI settings
         ConfigurationSection guiSection = guiConfig.getConfigurationSection("gui");
         if (guiSection != null) {
             title = ChatColor.translateAlternateColorCodes('&', guiSection.getString("title", "&d&l Ultimate Warps "));
@@ -106,7 +134,6 @@ public class WarpGUI implements Listener {
             fillEmptySlots = true;
         }
         
-        // Load click sound settings
         ConfigurationSection soundSection = guiConfig.getConfigurationSection("click-sound");
         if (soundSection != null) {
             clickSound = soundSection.getString("sound", "UI_BUTTON_CLICK");
@@ -118,10 +145,8 @@ public class WarpGUI implements Listener {
             clickSoundPitch = 1.0f;
         }
         
-        // Load fill item
         fillItem = loadItem(guiConfig.getConfigurationSection("gui.fill-item"), "GRAY_STAINED_GLASS_PANE", " ");
         
-        // Load warp item template
         ConfigurationSection warpItemSection = guiConfig.getConfigurationSection("warp-item");
         if (warpItemSection != null) {
             warpNameFormat = warpItemSection.getString("name", "&6&l{warp_name}");
@@ -133,7 +158,6 @@ public class WarpGUI implements Listener {
             warpHeadTexture = HeadUtils.WARP_ICON;
         }
         
-        // Load warp slots configuration
         ConfigurationSection warpSlotsSection = guiConfig.getConfigurationSection("warp-slots");
         if (warpSlotsSection != null) {
             String warpSlotMode = warpSlotsSection.getString("mode", "auto");
@@ -146,13 +170,13 @@ public class WarpGUI implements Listener {
                 }
             } else {
                 warpSlots = warpSlotsSection.getIntegerList("slots");
+                Collections.sort(warpSlots);
             }
         } else {
             warpSlots = new ArrayList<>();
             for (int i = 0; i <= 44; i++) warpSlots.add(i);
         }
         
-        // Load buttons
         buttons = new HashMap<>();
         ConfigurationSection buttonsSection = guiConfig.getConfigurationSection("buttons");
         if (buttonsSection != null) {
@@ -189,7 +213,6 @@ public class WarpGUI implements Listener {
         
         ItemStack item;
         
-        // Use HeadUtils for player heads with textures
         if (material == Material.PLAYER_HEAD && section.contains("head-texture")) {
             String texture = section.getString("head-texture");
             item = HeadUtils.getHead(texture);
@@ -224,8 +247,8 @@ public class WarpGUI implements Listener {
         UUID uuid = player.getUniqueId();
         long now = System.currentTimeMillis();
         
-        // Prevent sound spam - only play every 200ms
-        if (lastSoundTime.containsKey(uuid) && now - lastSoundTime.get(uuid) < 200) {
+        // 400ms sound cooldown
+        if (lastSoundTime.containsKey(uuid) && now - lastSoundTime.get(uuid) < 400) {
             return;
         }
         lastSoundTime.put(uuid, now);
@@ -252,24 +275,32 @@ public class WarpGUI implements Listener {
         ConfigurationSection customSection = guiConfig.getConfigurationSection("custom-items");
         if (customSection == null) return;
         
-        // Get all button slots first so we don't mark them as custom items
         Set<Integer> buttonSlots = new HashSet<>();
         for (ButtonConfig btn : buttons.values()) {
             buttonSlots.add(btn.slot);
         }
         
+        // Bug fix: custom items used to unconditionally overwrite whatever was already in
+        // a slot, including a real warp icon that had just been placed there. If a server
+        // admin's warp-slots range overlapped a custom-items slot list (e.g. a wider
+        // warp-slots range than the shipped default, or a custom border placed on the
+        // wrong slots), warps would silently disappear from the GUI with no warning.
+        // Custom items now only fill slots that are a) a warp slot with no warp on the
+        // current page, or b) not a warp slot at all (pure decoration/buttons area).
         for (String itemKey : customSection.getKeys(false)) {
             ConfigurationSection itemSection = customSection.getConfigurationSection(itemKey);
             if (itemSection != null && itemSection.getBoolean("enabled", true)) {
                 ItemStack customItem = loadItem(itemSection, "BARRIER", itemKey);
                 List<Integer> slots = itemSection.getIntegerList("slots");
                 for (int slot : slots) {
-                    if (slot >= 0 && slot < rows * 9) {
-                        gui.setItem(slot, customItem.clone());
-                        // Only mark as custom item if it's NOT a button slot
-                        if (!buttonSlots.contains(slot)) {
-                            customItemSlots.add(slot);
-                        }
+                    if (slot < 0 || slot >= rows * 9) continue;
+                    if (occupiedWarpSlots.contains(slot)) {
+                        // A real warp icon is on this slot - don't clobber it.
+                        continue;
+                    }
+                    gui.setItem(slot, customItem.clone());
+                    if (!buttonSlots.contains(slot)) {
+                        customItemSlots.add(slot);
                     }
                 }
             }
@@ -277,14 +308,21 @@ public class WarpGUI implements Listener {
     }
     
     public void handleClick(int slot) {
-        // Don't process clicks on custom decorative items
+        UUID uuid = player.getUniqueId();
+        long now = System.currentTimeMillis();
+        
+        // 400ms click cooldown (0.4 seconds)
+        if (lastClickTime.containsKey(uuid) && now - lastClickTime.get(uuid) < 400) {
+            return;
+        }
+        lastClickTime.put(uuid, now);
+        
         if (customItemSlots.contains(slot)) {
             return;
         }
         
         warps = new ArrayList<>(plugin.getWarpManager().getAccessibleWarps(player));
         
-        // Check buttons first
         for (Map.Entry<String, ButtonConfig> entry : buttons.entrySet()) {
             ButtonConfig btn = entry.getValue();
             if (btn.slot == slot && isValidSlot(btn.slot)) {
@@ -294,54 +332,38 @@ public class WarpGUI implements Listener {
             }
         }
         
-        // Check warp slots - FIX: Make sure slot numbers are correct
-        // Debug output to see what slots are being clicked
-        plugin.getLogger().info("Clicked slot: " + slot);
-        plugin.getLogger().info("Warp slots: " + warpSlots);
-        plugin.getLogger().info("Current page: " + currentPage);
-        plugin.getLogger().info("Total warps: " + warps.size());
-        
         if (warpSlots.contains(slot)) {
             int index = currentPage * warpSlots.size() + warpSlots.indexOf(slot);
-            plugin.getLogger().info("Calculated index: " + index);
             if (index < warps.size()) {
                 playClickSound(player, null);
                 player.closeInventory();
                 player.performCommand("warp " + warps.get(index).getName());
             }
-        } else {
-            plugin.getLogger().info("Slot " + slot + " is not in warp slots list");
         }
-    }
-    
-    public void open() {
-        createGUI();
-        player.openInventory(gui);
     }
     
     private void createGUI() {
         int size = rows * 9;
         gui = Bukkit.createInventory(null, size, title);
+        occupiedWarpSlots.clear();
         
         warps = new ArrayList<>(plugin.getWarpManager().getAccessibleWarps(player));
         
-        // Safety check: if no warps, just show empty GUI
         if (warps.isEmpty()) {
-            // Fill with filler and place buttons only
-            if (fillEmptySlots) {
-                for (int i = 0; i < size; i++) {
-                    gui.setItem(i, fillItem.clone());
-                }
-            }
             loadCustomItems();
             placeButtons();
-            player.openInventory(gui);
+            if (fillEmptySlots) {
+                for (int i = 0; i < size; i++) {
+                    if (gui.getItem(i) == null) {
+                        gui.setItem(i, fillItem.clone());
+                    }
+                }
+            }
             return;
         }
         
         int warpsPerPage = warpSlots.size();
         
-        // Prevent negative page
         if (currentPage < 0) {
             currentPage = 0;
         }
@@ -349,71 +371,63 @@ public class WarpGUI implements Listener {
         int startIndex = currentPage * warpsPerPage;
         int endIndex = Math.min(startIndex + warpsPerPage, warps.size());
         
-        // If startIndex is out of bounds, go to last valid page
         if (startIndex >= warps.size() && currentPage > 0) {
             currentPage = (warps.size() - 1) / warpsPerPage;
             startIndex = currentPage * warpsPerPage;
             endIndex = Math.min(startIndex + warpsPerPage, warps.size());
         }
         
-        // Place warp items
         if (startIndex < warps.size() && startIndex >= 0) {
             List<Warp> pageWarps = warps.subList(startIndex, endIndex);
             for (int i = 0; i < pageWarps.size() && i < warpSlots.size(); i++) {
                 Warp warp = pageWarps.get(i);
                 int slot = warpSlots.get(i);
                 gui.setItem(slot, createWarpItem(warp));
+                occupiedWarpSlots.add(slot);
             }
         }
         
-        // Fill empty warp slots with filler
-        if (fillEmptySlots) {
-            for (int slot : warpSlots) {
-                if (gui.getItem(slot) == null) {
-                    gui.setItem(slot, fillItem.clone());
-                }
-            }
-        }
-        
-        // Load custom decorative items
+        // Bug fix: custom items and buttons used to be placed after warp slots were
+        // already backfilled with fill-item placeholders, and would unconditionally
+        // overwrite whatever was there - including real warp icons, if their configured
+        // slots ever overlapped the warp-slots range. Now custom items/buttons go first
+        // and are only blocked by an *actual* warp (occupiedWarpSlots), and the
+        // fill-item pass runs last to mop up whatever is still empty.
         loadCustomItems();
-        
-        // Place buttons
         placeButtons();
         
-        // Fill remaining empty slots
         if (fillEmptySlots) {
             for (int i = 0; i < size; i++) {
-                if (gui.getItem(i) == null && !customItemSlots.contains(i) && !isButtonSlot(i)) {
+                if (gui.getItem(i) == null) {
                     gui.setItem(i, fillItem.clone());
                 }
             }
         }
     }
     
-    private boolean isButtonSlot(int slot) {
-        for (ButtonConfig btn : buttons.values()) {
-            if (btn.slot == slot) {
-                return true;
-            }
-        }
-        return false;
-    }
-    
     private ItemStack createWarpItem(Warp warp) {
-        ItemStack item = HeadUtils.getHead(warpHeadTexture);
+        // Bug fix: this used to always build a fresh item from the globally configured
+        // default head texture and never looked at warp.getIcon() at all, so a custom
+        // icon set via /warpsadmin was saved/reloaded correctly but never actually shown
+        // in the player-facing warp GUI - it always rendered the default head instead.
+        ItemStack customIcon = warp.getIcon();
+        ItemStack item = customIcon != null ? customIcon : HeadUtils.getHead(warpHeadTexture);
         ItemMeta meta = item.getItemMeta();
         
-        // Apply warp name
-        String name = warpNameFormat.replace("{warp_name}", warp.getName())
+        // Bug fix: {warp_name} was always substituted with warp.getName() (the internal
+        // file name), completely ignoring warp.getDisplayName() - the custom name set via
+        // /warpsadmin's "Set Display Name" button. That value was saved and reloaded
+        // correctly, just never read here, so it had no visible effect in the GUI.
+        String displayLabel = warp.getDisplayName() != null ? warp.getDisplayName() : warp.getName();
+        
+        String name = warpNameFormat.replace("{warp_name}", displayLabel)
             .replace("{cooldown}", String.valueOf(warp.getCooldown()))
             .replace("{delay}", String.valueOf(warp.getDelay()));
         meta.setDisplayName(ChatColor.translateAlternateColorCodes('&', name));
         
-        // Apply lore
         List<String> coloredLore = new ArrayList<>();
         for (String line : warpLoreFormat) {
-            String processed = line.replace("{warp_name}", warp.getName())
+            String processed = line.replace("{warp_name}", displayLabel)
                 .replace("{cooldown}", String.valueOf(warp.getCooldown()))
                 .replace("{delay}", String.valueOf(warp.getDelay()));
             coloredLore.add(ChatColor.translateAlternateColorCodes('&', processed));
@@ -435,17 +449,21 @@ public class WarpGUI implements Listener {
                 continue;
             }
             
-            // Check visibility conditions
             if (key.equals("previous-page") && btn.hideIfNoPrevious && currentPage == 0) {
                 continue;
             }
             if (key.equals("next-page") && btn.hideIfNoNext && currentPage >= totalPages - 1) {
                 continue;
             }
+            // Bug fix: same overwrite hazard as custom items - if a button's configured
+            // slot is ever misconfigured to overlap a warp slot, don't let it hide a real
+            // warp icon.
+            if (occupiedWarpSlots.contains(btn.slot)) {
+                continue;
+            }
             
             ItemStack item = btn.item.clone();
             
-            // Update dynamic items (like page info)
             if (btn.updateOnEachPage && item.getItemMeta() != null) {
                 ItemMeta meta = item.getItemMeta();
                 String displayName = meta.getDisplayName();
@@ -469,13 +487,50 @@ public class WarpGUI implements Listener {
     
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        if (!(event.getWhoClicked() instanceof Player clicker)) return;
-        if (!event.getView().getTitle().equals(title)) return;
+        if (!(event.getWhoClicked() instanceof Player))
+            return;
+
+        if (!event.getWhoClicked().getUniqueId().equals(player.getUniqueId()))
+            return;
+
+        if (!event.getInventory().equals(gui))
+            return;
+
         event.setCancelled(true);
+
+        if (event.getRawSlot() < 0 || event.getRawSlot() >= gui.getSize())
+            return;
+
         handleClick(event.getRawSlot());
     }
     
+    @EventHandler
+    public void onInventoryClose(InventoryCloseEvent event) {
+        if (!event.getInventory().equals(gui)) return;
+
+        UUID uuid = player.getUniqueId();
+
+        lastClickTime.remove(uuid);
+        lastPageChangeTime.remove(uuid);
+        lastSoundTime.remove(uuid);
+
+        OPEN_GUIS.remove(uuid);
+        unregister();
+    }
+    
     private void handleButtonClick(Player clicker, String buttonKey, ButtonConfig btn) {
+        UUID uuid = clicker.getUniqueId();
+        long now = System.currentTimeMillis();
+        boolean isPageButton = buttonKey.equals("previous-page") || buttonKey.equals("next-page");
+        
+        // 400ms page change cooldown
+        if (isPageButton && lastPageChangeTime.containsKey(uuid) && now - lastPageChangeTime.get(uuid) < 400) {
+            return;
+        }
+        if (isPageButton) {
+            lastPageChangeTime.put(uuid, now);
+        }
+        
         switch (buttonKey) {
             case "previous-page":
                 if (currentPage > 0) {

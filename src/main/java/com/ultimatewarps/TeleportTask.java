@@ -13,14 +13,20 @@ import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.time.Duration;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
 public class TeleportTask extends BukkitRunnable {
 
-    private static final Map<UUID, TeleportTask> activeTasks = new HashMap<>();
-    
+    // Bug fix: this used to keep its own private static map of active tasks, completely
+    // separate from UltimateWarps#getActiveTeleports(). That meant the plugin's shared
+    // map was always empty, so onDisable() never actually cancelled in-progress teleports
+    // (it iterated an empty map) and MoveListener could never look anything up either.
+    // Now there is a single shared map that both this class and the plugin use.
+    private static Map<UUID, TeleportTask> activeTasks() {
+        return UltimateWarps.getInstance().getActiveTeleports();
+    }
+
     private final Player player;
     private final Location destination;
     private final int totalSeconds;
@@ -28,26 +34,40 @@ public class TeleportTask extends BukkitRunnable {
     private final Location startLocation;
     private BossBar bossBar;
     private final String warpName;
+    // Bug fix: warpName is also used as a stable identity key ("Spawn" vs. everything
+    // else) to decide which config branch (spawn.* vs warp.*) applies, so it has to stay
+    // the internal name. But every player-visible string (boss bar, title, chat
+    // confirmation) was built from that same internal name too, completely ignoring
+    // warp.getDisplayName() - the custom name set via /warpsadmin. That value was saved
+    // and reloaded correctly, it just never reached anything the player actually sees.
+    // displayLabel is what gets shown; warpName is only ever used for identity checks
+    // and as the EffectManager.playTeleportEffect "type" argument.
+    private final String displayLabel;
     private boolean cancelled = false;
     private final ConfigManager config;
     private final MiniMessage miniMessage = MiniMessage.miniMessage();
 
     public TeleportTask(Player player, Location destination, int delaySeconds, String warpName) {
+        this(player, destination, delaySeconds, warpName, warpName);
+    }
+
+    public TeleportTask(Player player, Location destination, int delaySeconds, String warpName, String displayLabel) {
         this.player = player;
         this.destination = destination;
         this.totalSeconds = delaySeconds;
         this.secondsLeft = delaySeconds;
         this.startLocation = player.getLocation().clone();
         this.warpName = warpName;
+        this.displayLabel = displayLabel != null ? displayLabel : warpName;
         this.config = UltimateWarps.getInstance().getConfigManager();
         
         // Cancel any existing task for this player
-        TeleportTask existing = activeTasks.remove(player.getUniqueId());
+        TeleportTask existing = activeTasks().remove(player.getUniqueId());
         if (existing != null && !existing.cancelled) {
             existing.cancel();
         }
         
-        activeTasks.put(player.getUniqueId(), this);
+        activeTasks().put(player.getUniqueId(), this);
         createBossBar();
     }
 
@@ -58,7 +78,7 @@ public class TeleportTask extends BukkitRunnable {
         if (bossBarEnabled) {
             Component bossBarText = isSpawn ? 
                 config.getSpawnBossBarText(secondsLeft) : 
-                config.getWarpBossBarText(warpName, secondsLeft);
+                config.getWarpBossBarText(displayLabel, secondsLeft);
             
             Color color = convertColor(isSpawn ? config.spawnBossBarColor() : config.warpBossBarColor());
             Overlay overlay = Overlay.PROGRESS;
@@ -73,7 +93,7 @@ public class TeleportTask extends BukkitRunnable {
             boolean isSpawn = warpName.equals("Spawn");
             Component bossBarText = isSpawn ? 
                 config.getSpawnBossBarText(secondsLeft) : 
-                config.getWarpBossBarText(warpName, secondsLeft);
+                config.getWarpBossBarText(displayLabel, secondsLeft);
             
             bossBar = bossBar.name(bossBarText);
             bossBar = bossBar.progress((float) secondsLeft / totalSeconds);
@@ -111,7 +131,7 @@ public class TeleportTask extends BukkitRunnable {
                 Title.Times.times(Duration.ofMillis(0), Duration.ofMillis(1100), Duration.ofMillis(100))));
             
         } else if (!isSpawn && config.warpTitleEnabled()) {
-            Component title = config.getWarpTitleMessage(warpName);
+            Component title = config.getWarpTitleMessage(displayLabel);
             Component subtitle = config.getWarpSubtitleMessage(secondsLeft);
             
             player.showTitle(Title.title(title, subtitle,
@@ -121,6 +141,13 @@ public class TeleportTask extends BukkitRunnable {
         // Particle Effects
         playParticleEffects();
 
+        // Play tick sound during countdown (configurable)
+        if (isSpawn && config.spawnSoundEnabled()) {
+            player.playSound(player.getLocation(), config.spawnSoundType(), 0.5f, 1.0f);
+        } else if (!isSpawn && config.warpSoundEnabled()) {
+            player.playSound(player.getLocation(), config.warpSoundType(), 0.5f, 1.0f);
+        }
+
         secondsLeft--;
     }
 
@@ -128,6 +155,20 @@ public class TeleportTask extends BukkitRunnable {
         Location now = player.getLocation();
         return startLocation.getBlockX() != now.getBlockX() ||
                startLocation.getBlockZ() != now.getBlockZ();
+    }
+
+    /**
+     * Called by MoveListener on every PlayerMoveEvent so the teleport is cancelled the
+     * instant the player moves, instead of waiting for the next per-second tick in run().
+     * Respects the same cancel-on-move config setting as the tick-based check.
+     */
+    public void cancelIfMoved() {
+        if (cancelled) return;
+        boolean isSpawn = warpName.equals("Spawn");
+        boolean cancelOnMove = isSpawn ? config.spawnCancelOnMove() : config.warpCancelOnMove();
+        if (cancelOnMove && hasMoved()) {
+            cancelTask(config.getTeleportCancelledMoveMessage());
+        }
     }
 
     private void playParticleEffects() {
@@ -166,21 +207,18 @@ public class TeleportTask extends BukkitRunnable {
         if (bossBar != null) {
             bossBar.removeViewer(player);
         }
-        activeTasks.remove(player.getUniqueId());
+        activeTasks().remove(player.getUniqueId());
         
         // Teleport
         player.teleport(destination);
         
-        // Final teleport effects
-        try {
-            player.getWorld().spawnParticle(Particle.PORTAL, player.getLocation().add(0, 1, 0), 100, 0.5, 0.5, 0.5, 0.1);
-            player.playSound(player.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, 1.0f, 1.0f);
-        } catch (Exception e) {
-            // Ignore
-        }
+        // Final teleport effects - use EffectManager for configurable sound
+        // (warpName here is the identity key, not display text - EffectManager only
+        // uses it to decide spawn.* vs warp.* config, never shows it to the player)
+        UltimateWarps.getInstance().getEffectManager().playTeleportEffect(player, warpName);
         
         // Send confirmation message
-        Component message = config.getTeleportConfirmedMessage(warpName);
+        Component message = config.getTeleportConfirmedMessage(displayLabel);
         player.sendMessage(message);
     }
 
@@ -192,7 +230,7 @@ public class TeleportTask extends BukkitRunnable {
         if (bossBar != null) {
             bossBar.removeViewer(player);
         }
-        activeTasks.remove(player.getUniqueId());
+        activeTasks().remove(player.getUniqueId());
         
         if (reason != null) {
             player.sendMessage(reason);
@@ -205,11 +243,11 @@ public class TeleportTask extends BukkitRunnable {
         if (bossBar != null) {
             bossBar.removeViewer(player);
         }
-        activeTasks.remove(player.getUniqueId());
+        activeTasks().remove(player.getUniqueId());
     }
     
     public static void cancelAllTasks(Player player) {
-        TeleportTask task = activeTasks.remove(player.getUniqueId());
+        TeleportTask task = activeTasks().remove(player.getUniqueId());
         if (task != null && !task.cancelled) {
             task.cancel();
         }

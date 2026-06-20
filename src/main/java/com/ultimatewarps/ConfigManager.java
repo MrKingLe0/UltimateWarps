@@ -211,7 +211,10 @@ public class ConfigManager {
         try { 
             return Particle.valueOf(config.getString("warp.particle.type", "DUST").toUpperCase()); 
         } catch (IllegalArgumentException e) { 
-            return Particle.PORTAL; 
+            // Bug fix: this used to fall back to PORTAL, which doesn't match the
+            // documented/configured default of DUST for warps (spawn correctly falls
+            // back to its own default, PORTAL, but warp's default is DUST).
+            return Particle.DUST; 
         }
     }
     

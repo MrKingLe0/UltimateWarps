@@ -9,11 +9,18 @@ import org.bukkit.event.player.PlayerMoveEvent;
 
 public class MoveListener implements Listener {
 
+    // Bug fix: this previously looked up the active task from a map that was never
+    // populated (UltimateWarps#activeTeleports was always empty) and then did nothing
+    // with it anyway. Now that the map is actually kept up to date by TeleportTask,
+    // use it to cancel teleports the instant a player moves, instead of waiting up to
+    // a full second for TeleportTask's own per-tick movement check to catch it.
     @EventHandler
     public void onMove(PlayerMoveEvent event) {
         if (!event.hasChangedPosition()) return;
         Player player = event.getPlayer();
         TeleportTask task = UltimateWarps.getInstance().getActiveTeleports().get(player.getUniqueId());
-        // TeleportTask already checks movement each second, no need to duplicate.
+        if (task != null) {
+            task.cancelIfMoved();
+        }
     }
 }
