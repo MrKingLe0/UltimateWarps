@@ -1,0 +1,123 @@
+# =====================================================================
+#  UltimateWarps - Player Warps Configuration
+#  This file is entirely separate from config.yml (admin warps) and
+#  warps-gui.yml (admin warp GUI layout). Player warps have their own
+#  storage folder (plugins/UltimateWarps/playerwarps/<uuid>/<name>.yml)
+#  and their own GUI layout file (playerwarps-gui.yml).
+# =====================================================================
+
+# Master switch. If false, /playerwarps and the per-player limit/create
+# permissions all stop working - existing player warps are kept on disk
+# but cannot be visited or edited until this is turned back on.
+enabled: true
+
+# How many player warps someone can have if they hold none of the
+# numbered ultimatewarps.playerwarps.limit.<n> permission nodes.
+# Give a player ultimatewarps.playerwarps.limit.5 for a limit of 5, etc.
+# The highest numbered node a player holds always wins (they don't stack).
+# ultimatewarps.playerwarps.limit.unlimited overrides everything.
+default-limit: 1
+
+gui:
+  rows: 4
+  title: "<dark_aqua><b>Player Warps</b></dark_aqua>"
+
+# Teleport behavior for player warps - separate from the admin warp/spawn
+# settings in config.yml, so you can make player warps slower/costlier
+# than admin warps (or vice versa) without them interfering with each other.
+teleport:
+  cooldown: 30
+  delay: 3
+  cancel-on-move: true
+  title:
+    enabled: true
+    # %warp% is replaced with the player warp's display name (or its plain name if no
+    # display name is set). %seconds% is replaced with the seconds remaining.
+    message: "<b><gradient:#00DCFF:#7900FF>ᴛᴇʟᴇᴘᴏʀᴛɪɴɢ ᴛᴏ <white>%warp%</white></gradient></b>"
+    subtitle: "<gradient:#4547FF:#A4B7FE><b>ᴘʟᴇᴀsᴇ ᴡᴀɪᴛ</b><white> %seconds% </white><b>sᴇᴄᴏɴᴅs</b></gradient>"
+  bossbar:
+    enabled: true
+    # Valid colors: PINK, BLUE, RED, GREEN, YELLOW, PURPLE, WHITE
+    color: BLUE
+    # Valid styles: SOLID, SEGMENTED_6, SEGMENTED_10, SEGMENTED_12, SEGMENTED_20
+    style: SOLID
+    text: "<b><gradient:#4547FF:#00DCFF>ᴛᴇʟᴇᴘᴏʀᴛɪɴɢ ᴛᴏ %warp%</gradient></b>"
+  particle:
+    enabled: true
+    # Any valid org.bukkit.Particle name. DUST uses the color/size below; every other
+    # particle type ignores them.
+    type: DUST
+    count: 30
+    dust:
+      # Accepts "#RRGGBB" hex or "R,G,B" (0-255 each).
+      color: "#5555FF"
+      size: 1.0
+  sound:
+    enabled: true
+    # Any valid org.bukkit.Sound name.
+    type: BLOCK_NOTE_BLOCK_PLING
+    volume: 1.0
+    pitch: 1.0
+
+# These run at /playerwarps set time, not at teleport time - they control
+# WHERE a player is allowed to create a warp, not where they can visit one.
+location-requirements:
+  # Requires GriefPrevention to be installed. If true, a player can only
+  # set a player warp while standing inside a GriefPrevention claim that
+  # THEY own. If GriefPrevention isn't installed, this check is skipped
+  # entirely (treated as passed) rather than blocking everyone.
+  require-own-claim: false
+
+  # Requires WorldGuard to be installed. If true, a player warp cannot be
+  # set while standing inside ANY WorldGuard region (regardless of who
+  # owns it). If WorldGuard isn't installed, this check is skipped.
+  require-outside-worldguard-region: false
+
+  # If true, player warps can only be created in the overworld
+  # (environment NORMAL) - useful if you don't want player warps inside
+  # the Nether/End.
+  overworld-only: false
+
+  # Minimum distance (blocks) a new player warp must be from world spawn.
+  # 0 disables this check.
+  min-distance-from-spawn: 0
+
+  # Minimum distance (blocks) a new player warp must be from every other
+  # player's warps (in the same world). Helps prevent warp spam clustering
+  # in one area. 0 disables this check.
+  min-distance-from-other-playerwarps: 0
+
+# Optional per-LuckPerms-group multipliers applied to teleport.cooldown
+# and teleport.delay above, same idea as config.yml's rank-multipliers.
+# A player with ultimatewarps.bypass.cooldown or ultimatewarps.bypass.delay
+# always gets a multiplier of 0 regardless of group.
+rank-multipliers:
+  default:
+    cooldown: 1.0
+    delay: 1.0
+  vip:
+    cooldown: 0.5
+    delay: 0.5
+  mvp:
+    cooldown: 0.0
+    delay: 0.0
+
+messages:
+  no-permission: "<b><gradient:#FF3B3B:#9400FF>ʏᴏᴜ ᴅᴏɴ'ᴛ ʜᴀᴠᴇ ᴘᴇʀᴍɪssɪᴏɴ ᴛᴏ ᴅᴏ ᴛʜᴀᴛ.</gradient></b>"
+  feature-disabled: "<b><gradient:#FF3B3B:#9400FF>ᴘʟᴀʏᴇʀ ᴡᴀʀᴘs ᴀʀᴇ ᴄᴜʀʀᴇɴᴛʟʏ ᴅɪsᴀʙʟᴇᴅ.</gradient></b>"
+  limit-reached: "<b><gradient:#FF3B3B:#9400FF>ʏᴏᴜ'ᴠᴇ ʀᴇᴀᴄʜᴇᴅ ʏᴏᴜʀ ᴘʟᴀʏᴇʀ ᴡᴀʀᴘ ʟɪᴍɪᴛ (%limit%). ᴅᴇʟᴇᴛᴇ ᴏɴᴇ ᴡɪᴛʜ /ᴘʟᴀʏᴇʀᴡᴀʀᴘs ᴅᴇʟ <name> ꟻɪʀsᴛ.</gradient></b>"
+  warp-created: "<b><gradient:#00FFB2:#00DCFF>ᴘʟᴀʏᴇʀ ᴡᴀʀᴘ '%name%' ᴄʀᴇᴀᴛᴇᴅ!</gradient></b>"
+  warp-deleted: "<b><gradient:#00FFB2:#00DCFF>ᴘʟᴀʏᴇʀ ᴡᴀʀᴘ '%name%' ᴅᴇʟᴇᴛᴇᴅ.</gradient></b>"
+  warp-not-found: "<b><gradient:#FF3B3B:#9400FF>ᴛʜᴀᴛ ᴘʟᴀʏᴇʀ ᴡᴀʀᴘ ᴅᴏᴇsɴ'ᴛ ᴇxɪsᴛ.</gradient></b>"
+  not-your-warp: "<b><gradient:#FF3B3B:#9400FF>ᴛʜᴀᴛ's ɴᴏᴛ ʏᴏᴜʀ ᴡᴀʀᴘ.</gradient></b>"
+  not-in-own-claim: "<b><gradient:#FF3B3B:#9400FF>ʏᴏᴜ ᴍᴜsᴛ ʙᴇ ɪɴsɪᴅᴇ ʏᴏᴜʀ ᴏᴡɴ ɢʀɪᴇꟻᴘʀᴇᴠᴇɴᴛɪᴏɴ ᴄʟᴀɪᴍ ᴛᴏ sᴇᴛ ᴀ ᴘʟᴀʏᴇʀ ᴡᴀʀᴘ ʜᴇʀᴇ.</gradient></b>"
+  inside-region: "<b><gradient:#FF3B3B:#9400FF>ʏᴏᴜ ᴄᴀɴ'ᴛ sᴇᴛ ᴀ ᴘʟᴀʏᴇʀ ᴡᴀʀᴘ ɪɴsɪᴅᴇ ᴀ ᴡᴏʀʟᴅɢᴜᴀʀᴅ ʀᴇɢɪᴏɴ.</gradient></b>"
+  wrong-world: "<b><gradient:#FF3B3B:#9400FF>ᴘʟᴀʏᴇʀ ᴡᴀʀᴘs ᴄᴀɴ ᴏɴʟʏ ʙᴇ sᴇᴛ ɪɴ ᴛʜᴇ ᴏᴠᴇʀᴡᴏʀʟᴅ.</gradient></b>"
+  too-close-to-spawn: "<b><gradient:#FF3B3B:#9400FF>ᴛʜᴀᴛ ʟᴏᴄᴀᴛɪᴏɴ ɪs ᴛᴏᴏ ᴄʟᴏsᴇ ᴛᴏ sᴘᴀᴡɴ.</gradient></b>"
+  too-close-to-other-warp: "<b><gradient:#FF3B3B:#9400FF>ᴛʜᴀᴛ ʟᴏᴄᴀᴛɪᴏɴ ɪs ᴛᴏᴏ ᴄʟᴏsᴇ ᴛᴏ ᴀɴᴏᴛʜᴇʀ ᴘʟᴀʏᴇʀ's ᴡᴀʀᴘ.</gradient></b>"
+  invalid-name: "<b><gradient:#FF3B3B:#9400FF>ᴡᴀʀᴘ ɴᴀᴍᴇs ᴍᴀʏ ᴏɴʟʏ ᴄᴏɴᴛᴀɪɴ ʟᴇᴛᴛᴇʀs, ɴᴜᴍʙᴇʀs, ᴜɴᴅᴇʀsᴄᴏʀᴇs ᴀɴᴅ ʜʏᴘʜᴇɴs (ᴍᴀx 32 ᴄʜᴀʀᴀᴄᴛᴇʀs).</gradient></b>"
+  name-taken: "<b><gradient:#FF3B3B:#9400FF>ʏᴏᴜ ᴀʟʀᴇᴀᴅʏ ʜᴀᴠᴇ ᴀ ᴘʟᴀʏᴇʀ ᴡᴀʀᴘ ɴᴀᴍᴇᴅ '%name%'.</gradient></b>"
+  cooldown: "<b><gradient:#FF3B3B:#9400FF>ʏᴏᴜ ᴍᴜsᴛ ᴡᴀɪᴛ %seconds% ᴍᴏʀᴇ sᴇᴄᴏɴᴅ(s) ʙᴇꟻᴏʀᴇ ᴡᴀʀᴘɪɴɢ ᴀɢᴀɪɴ.</gradient></b>"
+  teleport-confirmed: "<b><gradient:#00FFB2:#00DCFF>ᴛᴇʟᴇᴘᴏʀᴛᴇᴅ ᴛᴏ %name%!</gradient></b>"
+  teleported-cancelled-move: "<b><gradient:#FF3B3B:#9400FF>ᴛᴇʟᴇᴘᴏʀᴛ ᴄᴀɴᴄᴇʟʟᴇᴅ - ʏᴏᴜ ᴍᴏᴠᴇᴅ!</gradient></b>"
+  private-warp: "<b><gradient:#FF3B3B:#9400FF>ᴛʜᴀᴛ ᴡᴀʀᴘ ɪs ᴘʀɪᴠᴀᴛᴇ.</gradient></b>"

@@ -1,0 +1,146 @@
+# =====================================================================
+#  UltimateWarps - Player Warps GUI Configuration
+#  Entirely separate from warps-gui.yml (the admin warp GUI). Customize
+#  every slot and button in the player-warps browser menu here.
+# =====================================================================
+
+gui:
+  title: "&b&lᴘʟᴀʏᴇʀ ᴡᴀʀᴘs"
+  rows: 6
+  fill-empty-slots: true
+  fill-item:
+    material: "BLACK_STAINED_GLASS_PANE"
+    name: " "
+    lore: []
+    amount: 1
+    enchanted: false
+
+click-sound:
+  sound: "UI_BUTTON_CLICK"
+  volume: 1.0
+  pitch: 1.0
+
+# Item template for a player warp that ISN'T owned by the viewer.
+warp-item:
+  material: "PLAYER_HEAD"
+  name: "&b&l{warp_name}"
+  lore:
+    - ""
+    - "&7ᴏᴡɴᴇʀ: &f{owner}"
+    - "&7ᴄᴏᴏʟᴅᴏᴡɴ: &e{cooldown}s"
+    - "&7ᴅᴇʟᴀʏ: &e{delay}s"
+    - ""
+    - "&bᴄʟɪᴄᴋ ᴛᴏ ᴛᴇʟᴇᴘᴏʀᴛ"
+  amount: 1
+  enchanted: false
+  head-texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNDQxYTAyNTMwMDBjMmIyOGQzODY0MjZiZDM4YTRmMmQ3NmViY2RkMDdmNjc1ZTExYjNlNjgxNGM2YThhMmVhIn19fQ=="
+
+# Item template for a player warp the viewer OWNS - shown with different
+# lore (no "owner" line, an edit hint instead) so it's visually obvious
+# which warps in the list are yours.
+own-warp-item:
+  material: "PLAYER_HEAD"
+  name: "&e&l{warp_name} &7(ʏᴏᴜʀs)"
+  lore:
+    - ""
+    - "&7ᴄᴏᴏʟᴅᴏᴡɴ: &e{cooldown}s"
+    - "&7ᴅᴇʟᴀʏ: &e{delay}s"
+    - "&7ᴠɪsɪʙɪʟɪᴛʏ: &f{visibility}"
+    - ""
+    - "&bᴄʟɪᴄᴋ ᴛᴏ ᴛᴇʟᴇᴘᴏʀᴛ"
+    - "&eꜱʜɪꟻᴛ+ᴄʟɪᴄᴋ ᴛᴏ ᴇᴅɪᴛ"
+  amount: 1
+  enchanted: false
+  head-texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNDQxYTAyNTMwMDBjMmIyOGQzODY0MjZiZDM4YTRmMmQ3NmViY2RkMDdmNjc1ZTExYjNlNjgxNGM2YThhMmVhIn19fQ=="
+
+warp-slots:
+  mode: "auto"
+  auto-start: 9
+  auto-end: 44
+
+buttons:
+  previous-page:
+    enabled: true
+    slot: 45
+    material: "PLAYER_HEAD"
+    name: "&b← ᴘʀᴇᴠɪᴏᴜs ᴘᴀɢᴇ"
+    lore:
+      - "&eᴄʟɪᴄᴋ ᴛᴏ ɢᴏ ᴛᴏ ᴘʀᴇᴠɪᴏᴜs ᴘᴀɢᴇ"
+    amount: 1
+    head-texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNjllYTFkODYyNDdmNGFmMzUxZWQxODY2YmNhNmEzMDQwYTA2YzY4MTc3Yzc4ZTQyMzE2YTEwOThlNjBmYjdkMyJ9fX0="
+    hide-if-no-previous: true
+
+  next-page:
+    enabled: true
+    slot: 53
+    material: "PLAYER_HEAD"
+    name: "&bɴᴇxᴛ ᴘᴀɢᴇ →"
+    lore:
+      - "&eᴄʟɪᴄᴋ ᴛᴏ ɢᴏ ᴛᴏ ɴᴇxᴛ ᴘᴀɢᴇ"
+    amount: 1
+    head-texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvODI3MWE0NzEwNDQ5NWUzNTdjM2U4ZTgwZjUxMWE5ZjEwMmIwNzAwY2E5Yjg4ZTg4Yjc5NWQzM2ZmMjAxMDVlYiJ9fX0="
+    hide-if-no-next: true
+
+  # Toggle between "everyone's public warps" and "just my warps".
+  filter-toggle:
+    enabled: true
+    slot: 46
+    material: "HOPPER"
+    name: "&d&lꜰɪʟᴛᴇʀ: {filter}"
+    lore:
+      - "&7ᴄʟɪᴄᴋ ᴛᴏ ᴛᴏɢɢʟᴇ ʙᴇᴛᴡᴇᴇɴ"
+      - "&7ᴀʟʟ ᴡᴀʀᴘs ᴀɴᴅ ʏᴏᴜʀ ᴏᴡɴ"
+    amount: 1
+
+  # Opens the "create new warp here" flow (equivalent to /playerwarps set).
+  create-warp:
+    enabled: true
+    slot: 47
+    material: "EMERALD"
+    name: "&a&lᴄʀᴇᴀᴛᴇ ᴀ ᴡᴀʀᴘ"
+    lore:
+      - "&7ᴄʟɪᴄᴋ ᴛᴏ ᴄʀᴇᴀᴛᴇ ᴀ ᴡᴀʀᴘ ᴀᴛ"
+      - "&7ʏᴏᴜʀ ᴄᴜʀʀᴇɴᴛ ʟᴏᴄᴀᴛɪᴏɴ"
+      - ""
+      - "&7ᴜsᴀɢᴇ: ᴄʟᴏsᴇ ᴛʜɪs ᴍᴇɴᴜ, ᴛʜᴇɴ"
+      - "&7/ᴘʟᴀʏᴇʀᴡᴀʀᴘs sᴇᴛ <ɴᴀᴍᴇ>"
+    amount: 1
+
+  close:
+    enabled: true
+    slot: 49
+    material: "BARRIER"
+    name: "&c&lᴄʟᴏsᴇ"
+    lore:
+      - "&7ᴄʟɪᴄᴋ ᴛᴏ ᴄʟᴏsᴇ ᴛʜᴇ ᴍᴇɴᴜ"
+    amount: 1
+
+  info:
+    enabled: true
+    slot: 51
+    material: "PAPER"
+    name: "&f&lᴘᴀɢᴇ {current}/{total}"
+    lore:
+      - "&7ᴄᴜʀʀᴇɴᴛʟʏ ᴠɪᴇᴡɪɴɢ ᴘᴀɢᴇ {current}"
+      - "&7ᴏꜰ {total} ᴛᴏᴛᴀʟ ᴘᴀɢᴇs"
+      - ""
+      - "&7ʏᴏᴜʀ ᴡᴀʀᴘs: &f{owned}&7/&f{limit}"
+    amount: 1
+    update-on-each-page: true
+
+custom-items:
+  top-border:
+    enabled: true
+    slots: [0, 1, 2, 3, 4, 5, 6, 7, 8]
+    material: "CYAN_STAINED_GLASS_PANE"
+    name: " "
+    lore: []
+    amount: 1
+
+  bottom-border:
+    enabled: true
+    slots: [48, 50, 52]
+    material: "CYAN_STAINED_GLASS_PANE"
+    name: " "
+    lore: []
+    amount: 1

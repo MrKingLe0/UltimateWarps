@@ -7,6 +7,11 @@ import com.ultimatewarps.listeners.ChatListener;
 import com.ultimatewarps.listeners.GUIListener;
 import com.ultimatewarps.listeners.JoinListener;
 import com.ultimatewarps.listeners.MoveListener;
+import com.ultimatewarps.playerwarps.PlayerWarpManager;
+import com.ultimatewarps.playerwarps.PlayerWarpTeleportTask;
+import com.ultimatewarps.playerwarps.PlayerWarpsConfigManager;
+import com.ultimatewarps.playerwarps.commands.PlayerWarpsCommand;
+import com.ultimatewarps.playerwarps.gui.PlayerWarpGUI;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -24,6 +29,11 @@ public final class UltimateWarps extends JavaPlugin {
     private EffectManager effectManager;
     private final Map<UUID, TeleportTask> activeTeleports = new HashMap<>();
 
+    // ===== Player Warps - kept as entirely separate fields/managers from admin warps =====
+    private PlayerWarpsConfigManager playerWarpsConfigManager;
+    private PlayerWarpManager playerWarpManager;
+    private final Map<UUID, PlayerWarpTeleportTask> activePlayerWarpTeleports = new HashMap<>();
+
     @Override
     public void onEnable() {
         instance = this;
@@ -37,8 +47,21 @@ public final class UltimateWarps extends JavaPlugin {
         cooldownManager = new CooldownManager();
         effectManager = new EffectManager(this);
 
+        // Player warps - separate config file, separate storage folder, separate manager.
+        // Initialized after the admin-warp managers above so getPlayerWarpManager() etc.
+        // are never called before they exist, but everything here is otherwise fully
+        // independent of the admin warp system.
+        playerWarpsConfigManager = new PlayerWarpsConfigManager(this);
+        playerWarpManager = new PlayerWarpManager(this);
+        playerWarpManager.loadAll();
+
         registerCommands();
         registerListeners();
+
+        // Improvement: sweep expired cooldown entries every 10 minutes so the cooldown
+        // map doesn't grow forever on a long-running server with many unique players.
+        // Only removes entries that have already expired, so it can never be used to
+        // dodge an active cooldown.
         Bukkit.getScheduler().runTaskTimer(this, () -> cooldownManager.purgeExpired(), 20L * 60 * 10, 20L * 60 * 10);
 
         Bukkit.getConsoleSender().sendMessage(
@@ -59,8 +82,18 @@ public final class UltimateWarps extends JavaPlugin {
         if (warpManager != null) {
             warpManager.saveAllWarps();
         }
+        if (playerWarpManager != null) {
+            playerWarpManager.saveAll();
+        }
+        // Bug fix: iterating activeTeleports.values() while each cancel() call removes its
+        // own entry from that same map throws ConcurrentModificationException. Snapshot the
+        // tasks first, and do this before nulling out `instance` since TeleportMap#cancel()
+        // looks the plugin instance back up internally.
         new java.util.ArrayList<>(activeTeleports.values()).forEach(TeleportTask::cancel);
         activeTeleports.clear();
+
+        new java.util.ArrayList<>(activePlayerWarpTeleports.values()).forEach(PlayerWarpTeleportTask::cancel);
+        activePlayerWarpTeleports.clear();
         
         Bukkit.getConsoleSender().sendMessage(
                 "\n"+
@@ -84,6 +117,11 @@ public final class UltimateWarps extends JavaPlugin {
         getCommand("spawn").setExecutor(spawnCommand);
         getCommand("setspawn").setExecutor(new SetSpawnCommand());
         getCommand("delspawn").setExecutor(new DelSpawnCommand());
+        // Improvement: this used to construct two separate WarpCommand instances - one
+        // as the executor, a different one as the tab completer - so they never shared
+        // state. Harmless today since tab-complete doesn't read the cooldown-message
+        // maps, but it's wasted allocation and a trap for future changes. Same fix
+        // applied to UltimateWarpsCommand below.
         warpCommand = new WarpCommand(this);
         getCommand("warp").setExecutor(warpCommand);
         getCommand("warp").setTabCompleter(warpCommand);
@@ -96,6 +134,11 @@ public final class UltimateWarps extends JavaPlugin {
         getCommand("ultimatewarps").setExecutor(uwarpsCommand);
         getCommand("ultimatewarps").setTabCompleter(uwarpsCommand);
         getCommand("spawnforce").setExecutor(new SpawnForceCommand(this));
+
+        // Player warps - entirely separate command tree from the admin warp commands above.
+        PlayerWarpsCommand playerWarpsCommand = new PlayerWarpsCommand(this);
+        getCommand("playerwarps").setExecutor(playerWarpsCommand);
+        getCommand("playerwarps").setTabCompleter(playerWarpsCommand);
     }
 
     private void registerListeners() {
@@ -137,11 +180,27 @@ public final class UltimateWarps extends JavaPlugin {
         return activeTeleports;
     }
 
+    public PlayerWarpsConfigManager getPlayerWarpsConfigManager() {
+        return playerWarpsConfigManager;
+    }
+
+    public PlayerWarpManager getPlayerWarpManager() {
+        return playerWarpManager;
+    }
+
+    public Map<UUID, PlayerWarpTeleportTask> getActivePlayerWarpTeleports() {
+        return activePlayerWarpTeleports;
+    }
+
     public void reloadPlugin() {
         WarpGUI.unregisterAll();
+        com.ultimatewarps.playerwarps.gui.PlayerWarpGUI.unregisterAll();
 
         reloadConfig();
         configManager.reload();
         warpManager.loadWarps();
+
+        playerWarpsConfigManager.reload();
+        playerWarpManager.loadAll();
     }
 }

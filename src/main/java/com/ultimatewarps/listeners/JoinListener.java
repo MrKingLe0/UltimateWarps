@@ -1,8 +1,8 @@
 package com.ultimatewarps.listeners;
 
+import com.ultimatewarps.TextFormat;
 import com.ultimatewarps.UltimateWarps;
 import com.ultimatewarps.SpawnLocationManager;
-import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -13,7 +13,6 @@ import org.bukkit.event.player.PlayerQuitEvent;
 public class JoinListener implements Listener {
 
     private final UltimateWarps plugin;
-    private final MiniMessage miniMessage = MiniMessage.miniMessage();
 
     public JoinListener(UltimateWarps plugin) {
         this.plugin = plugin;
@@ -50,9 +49,14 @@ public class JoinListener implements Listener {
             if (pendingSpawn != null) {
                 player.teleport(pendingSpawn);
                 plugin.getEffectManager().playTeleportEffect(player, "Spawn");
-                String message = plugin.getConfigManager().getRawMessage("teleportation-confirmed");
-                message = message.replace("%warp%", "Spawn");
-                player.sendMessage(miniMessage.deserialize(message));
+                // Bug fix: this used to substitute %warp% as a raw string into the
+                // template and call miniMessage.deserialize() directly, bypassing
+                // TextFormat entirely (no legacy '&'/hex support, and the same nested-tag
+                // corruption risk as every other raw-replace-then-parse call site fixed
+                // this round). TextFormat.renderTemplate() composes the template and the
+                // value as separate Components instead.
+                String template = plugin.getConfigManager().getRawMessage("teleportation-confirmed");
+                player.sendMessage(TextFormat.renderTemplate(template, "%warp%", "Spawn"));
             }
             spawnManager.setJoinedBefore(player.getUniqueId());
             return;
@@ -64,7 +68,7 @@ public class JoinListener implements Listener {
         if (isFirstJoin && plugin.getConfigManager().spawnTeleportOnFirstJoin()) {
             player.teleport(spawn);
             String message = plugin.getConfigManager().getSpawnTeleportOnFirstJoinMessage();
-            player.sendMessage(miniMessage.deserialize(message));
+            player.sendMessage(TextFormat.render(message));
             spawnManager.setJoinedBefore(player.getUniqueId());
             return;
         }
@@ -73,7 +77,7 @@ public class JoinListener implements Listener {
         if (!isFirstJoin && plugin.getConfigManager().spawnTeleportOnEveryJoin()) {
             player.teleport(spawn);
             String message = plugin.getConfigManager().getSpawnTeleportOnEveryJoinMessage();
-            player.sendMessage(miniMessage.deserialize(message));
+            player.sendMessage(TextFormat.render(message));
         }
         
         // Mark that this player has joined before (if not already marked)

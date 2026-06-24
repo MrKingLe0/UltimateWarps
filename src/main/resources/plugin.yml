@@ -39,6 +39,10 @@ commands:
     description: Main plugin command.
     usage: /ultimatewarps <reload|spawn|warp|setwarp|delwarp|warpsadmin|setspawn|delspawn>
     aliases: [uwarps]
+  playerwarps:
+    description: Create, manage, and visit player-created warps.
+    usage: /playerwarps <gui|set|del|edit|list|warp|admin>
+    aliases: [pwarps]
 
 permissions:
   ultimatewarps.admin:
@@ -64,4 +68,38 @@ permissions:
     default: false
   ultimatewarps.rank.mvp:
     description: MVP rank multiplier.
+    default: false
+
+  # ===== Player Warps =====
+  # Browsing/visiting public player warps is on by default (same spirit as
+  # ultimatewarps.warp.* above), but CREATING one is opt-in (default: false) since a
+  # server owner upgrading the plugin likely doesn't want every existing player to
+  # suddenly be able to plant warps everywhere with no warning. Grant
+  # ultimatewarps.playerwarps.create to whichever group(s) should have it.
+  ultimatewarps.playerwarps.create:
+    description: Allows creating player warps with /playerwarps set.
+    default: false
+  ultimatewarps.playerwarps.browse:
+    description: Allows opening the player warps browser GUI and visiting public player warps.
+    default: true
+  ultimatewarps.playerwarps.admin:
+    description: Staff oversight - see/wipe any player's warps, teleport to any warp regardless of visibility, bypass the feature-disabled lock.
+    default: op
+  # Per-player warp limit nodes. The highest numbered node a player holds wins (they
+  # don't stack) - see playerwarps-config.yml's default-limit for the fallback when a
+  # player holds none of these.
+  ultimatewarps.playerwarps.limit.1:
+    description: Allows 1 player warp.
+    default: false
+  ultimatewarps.playerwarps.limit.3:
+    description: Allows 3 player warps.
+    default: false
+  ultimatewarps.playerwarps.limit.5:
+    description: Allows 5 player warps.
+    default: false
+  ultimatewarps.playerwarps.limit.10:
+    description: Allows 10 player warps.
+    default: false
+  ultimatewarps.playerwarps.limit.unlimited:
+    description: Removes the player warp limit entirely.
     default: false

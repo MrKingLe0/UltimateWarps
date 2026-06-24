@@ -39,7 +39,7 @@ public class SetWarpCommand implements CommandExecutor {
         warp.setCooldown(config.globalDefaultCooldown());
         warp.setDelay(config.globalDefaultDelay());
         wm.addWarp(warp);
-        player.sendMessage(config.getMessage("warp-created").replaceText(b -> b.matchLiteral("%name%").replacement(name)));
+        player.sendMessage(config.getMessage("warp-created", "name", name));
         return true;
     }
 }

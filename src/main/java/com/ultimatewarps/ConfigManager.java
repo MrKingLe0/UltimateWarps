@@ -3,7 +3,6 @@ package com.ultimatewarps;
 import io.papermc.paper.registry.RegistryAccess;
 import io.papermc.paper.registry.RegistryKey;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.luckperms.api.LuckPerms;
 import net.luckperms.api.LuckPermsProvider;
 import net.luckperms.api.model.group.Group;
@@ -21,7 +20,6 @@ public class ConfigManager {
 
     private final UltimateWarps plugin;
     private FileConfiguration config;
-    private final MiniMessage miniMessage = MiniMessage.miniMessage();
     private final SpawnLocationManager spawnLocationManager;
 
     public ConfigManager(UltimateWarps plugin) {
@@ -35,9 +33,14 @@ public class ConfigManager {
         this.config = plugin.getConfig();
     }
 
+    // Bug fix: parse() used to call miniMessage.deserialize() directly, completely
+    // bypassing TextFormat - which meant every chat message, title, subtitle, and boss
+    // bar text built via this class (getTeleportConfirmedMessage, getWarpBossBarText,
+    // getWarpTitleMessage, etc.) never got legacy '&'/hex code support or the
+    // round-trip-safety fix that the GUIs already use. Routing through TextFormat here
+    // makes this the same single formatting pipeline as the rest of the plugin.
     public Component parse(String message) {
-        if (message == null || message.isEmpty()) return Component.empty();
-        return miniMessage.deserialize(message);
+        return TextFormat.render(message);
     }
 
     // ========== SPAWN SETTINGS ==========
@@ -164,15 +167,21 @@ public class ConfigManager {
     }
     
     public Component getWarpTitleMessage(String warpName) {
-        String msg = config.getString("warp.title.message", "<gradient:#00DCFF:#0036FF><b>ᴛᴇʟᴇᴘᴏʀᴛɪɴɢ ᴛᴏ</b> <white>%warp%</white></gradient>");
-        msg = msg.replace("%warp%", warpName);
-        return parse(msg);
+        String template = config.getString("warp.title.message", "<gradient:#00DCFF:#0036FF><b>ᴛᴇʟᴇᴘᴏʀᴛɪɴɢ ᴛᴏ</b> <white>%warp%</white></gradient>");
+        // Bug fix: this used to substitute %warp% as a raw string INSIDE an already-open
+        // <gradient> tag, then parse the whole combined string once. If the warp's
+        // display name itself contained MiniMessage tags (e.g. its own
+        // <gradient:red:blue>...</gradient>), that nested raw text broke the outer
+        // gradient's parsing entirely - producing a malformed <gradient::> tag with no
+        // arguments, exactly the corruption that was reported in titles/boss bars.
+        // TextFormat.renderTemplate() renders the warp name as its own separate
+        // Component and composes it in, so nesting can never corrupt the outer tag.
+        return TextFormat.renderTemplate(template, "%warp%", warpName);
     }
     
     public Component getWarpSubtitleMessage(int seconds) {
-        String msg = config.getString("warp.title.subtitle", "<gradient:#4547FF:#A4B7FE><b>ᴘʟᴇᴀsᴇ ᴡᴀɪᴛ</b><white> %seconds% </white><b>sᴇᴄᴏɴᴅs</b></gradient>");
-        msg = msg.replace("%seconds%", String.valueOf(seconds));
-        return parse(msg);
+        String template = config.getString("warp.title.subtitle", "<gradient:#4547FF:#A4B7FE><b>ᴘʟᴇᴀsᴇ ᴡᴀɪᴛ</b><white> %seconds% </white><b>sᴇᴄᴏɴᴅs</b></gradient>");
+        return TextFormat.renderTemplate(template, "%seconds%", String.valueOf(seconds));
     }
 
     // ========== WARP BOSSBAR ==========
@@ -181,9 +190,8 @@ public class ConfigManager {
     }
     
     public Component getWarpBossBarText(String warpName, int seconds) {
-        String msg = config.getString("warp.bossbar.text", "<b><gradient:#4547FF:#00DCFF>ᴛᴇʟᴇᴘᴏʀᴛɪɴɢ ᴛᴏ %warp%</gradient></b>");
-        msg = msg.replace("%warp%", warpName).replace("%seconds%", String.valueOf(seconds));
-        return parse(msg);
+        String template = config.getString("warp.bossbar.text", "<b><gradient:#4547FF:#00DCFF>ᴛᴇʟᴇᴘᴏʀᴛɪɴɢ ᴛᴏ %warp%</gradient></b>");
+        return TextFormat.renderTemplate(template, "%warp%", warpName, "%seconds%", String.valueOf(seconds));
     }
     
     public BarColor warpBossBarColor() {
@@ -389,12 +397,18 @@ public class ConfigManager {
         return parse(getRawMessage(path));
     }
 
+    // Bug fix: this used to substitute the placeholder as a raw string into the
+    // template BEFORE parsing the combined string once. That's exactly what was
+    // corrupting the teleportation-confirmed message and other chat messages: if the
+    // value (e.g. a warp's display name) contained its own MiniMessage tags - including
+    // gradients - splicing it into a template that also used tags could nest or break
+    // tag boundaries, producing malformed output like <gradient::>. TextFormat.renderTemplate()
+    // renders the template and the value as separate Components and composes them, so
+    // nesting can never corrupt either one.
     public Component getMessage(String path, String placeholder, String value) {
         String raw = getRawMessage(path);
-        if (raw != null) {
-            raw = raw.replace("%" + placeholder + "%", value);
-        }
-        return parse(raw);
+        if (raw == null) return Component.empty();
+        return TextFormat.renderTemplate(raw, "%" + placeholder + "%", value);
     }
     // Teleport on every join
     public boolean spawnTeleportOnEveryJoin() {

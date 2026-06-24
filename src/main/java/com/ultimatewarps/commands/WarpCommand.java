@@ -44,15 +44,21 @@ public class WarpCommand implements CommandExecutor, TabCompleter {
             return true;
         }
         
-    // Anti-spam
-    long lastExec = commandCooldown.getOrDefault(player.getUniqueId(), 0L);
     long now = System.currentTimeMillis();
-    if (now - lastExec < 1000) {
-        return true;
-    }
-    commandCooldown.put(player.getUniqueId(), now);
 
     if (args.length == 0) {
+        // Bug fix: this anti-spam guard used to apply to EVERY /warp invocation,
+        // including /warp <name> teleports - not just opening the GUI. That meant
+        // opening the GUI and then clicking a warp within 1 second of each other (which
+        // is the normal, fast way to use the GUI) could silently swallow the teleport
+        // command entirely, with zero feedback - the menu would just close and nothing
+        // would happen. The anti-spam throttle now only applies to repeatedly opening
+        // the GUI with bare /warp, which is what it's actually meant to prevent.
+        long lastOpen = commandCooldown.getOrDefault(player.getUniqueId(), 0L);
+        if (now - lastOpen < 1000) {
+            return true;
+        }
+        commandCooldown.put(player.getUniqueId(), now);
         WarpGUI.getOrCreate(plugin, player).open();
         return true;
     }

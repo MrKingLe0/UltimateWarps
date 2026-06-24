@@ -97,9 +97,9 @@ buttons:
     enabled: true
     slot: 53
     material: "BARRIER"
-    name: "&c&lClose"
+    name: "&c&lᴄʟᴏsᴇ"
     lore:
-      - "&7Click to close the menu"
+      - "&7ᴄʟɪᴄᴋ ᴛᴏ ᴄʟᴏsᴇ ᴛʜᴇ ᴍᴇɴᴜ"
     amount: 1
 
   # Info Button (Page info)

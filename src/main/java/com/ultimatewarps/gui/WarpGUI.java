@@ -1,10 +1,11 @@
 package com.ultimatewarps.gui;
 
 import com.ultimatewarps.HeadUtils;
+import com.ultimatewarps.TextFormat;
 import com.ultimatewarps.UltimateWarps;
 import com.ultimatewarps.Warp;
+import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.configuration.ConfigurationSection;
@@ -32,7 +33,7 @@ public class WarpGUI implements Listener {
     private YamlConfiguration guiConfig;
     
     // GUI settings
-    private String title;
+    private Component title;
     private int rows;
     private boolean fillEmptySlots;
     private ItemStack fillItem;
@@ -123,13 +124,13 @@ public class WarpGUI implements Listener {
         
         ConfigurationSection guiSection = guiConfig.getConfigurationSection("gui");
         if (guiSection != null) {
-            title = ChatColor.translateAlternateColorCodes('&', guiSection.getString("title", "&d&l Ultimate Warps "));
+            title = TextFormat.render(guiSection.getString("title", "&d&l Ultimate Warps "));
             rows = guiSection.getInt("rows", 6);
             if (rows < 1) rows = 1;
             if (rows > 6) rows = 6;
             fillEmptySlots = guiSection.getBoolean("fill-empty-slots", true);
         } else {
-            title = ChatColor.translateAlternateColorCodes('&', "&d&l Ultimate Warps ");
+            title = TextFormat.render("&d&l Ultimate Warps ");
             rows = 6;
             fillEmptySlots = true;
         }
@@ -192,6 +193,16 @@ public class WarpGUI implements Listener {
                     btnConfig.command = btnSection.getString("command", null);
                     btnConfig.closeOnClick = btnSection.getBoolean("close-on-click", false);
                     btnConfig.clickSound = btnSection.getString("click-sound", null);
+                    // Bug fix: {current}/{total} substitution used to run on the legacy
+                    // string form (meta.getDisplayName()/getLore()) AFTER the item was
+                    // already built with the new Component-based loadItem(). That mismatch
+                    // either lost MiniMessage styling (round-tripping through the legacy
+                    // string form flattens it) or simply didn't see the placeholders if
+                    // they'd already been escaped during MiniMessage parsing. Keeping the
+                    // raw template strings here lets per-page substitution happen BEFORE
+                    // rendering to a Component, exactly once, the same way warp names work.
+                    btnConfig.rawNameTemplate = btnSection.getString("name", buttonKey);
+                    btnConfig.rawLoreTemplate = btnSection.getStringList("lore");
                     buttons.put(buttonKey, btnConfig);
                 }
             }
@@ -224,15 +235,15 @@ public class WarpGUI implements Listener {
         
         String name = section.getString("name", defaultName);
         if (name != null && !name.isEmpty()) {
-            meta.setDisplayName(ChatColor.translateAlternateColorCodes('&', name));
+            meta.displayName(TextFormat.render(name));
         }
         
         List<String> lore = section.getStringList("lore");
         if (!lore.isEmpty()) {
-            List<String> coloredLore = lore.stream()
-                .map(line -> ChatColor.translateAlternateColorCodes('&', line))
+            List<Component> renderedLore = lore.stream()
+                .map(TextFormat::render)
                 .collect(Collectors.toList());
-            meta.setLore(coloredLore);
+            meta.lore(renderedLore);
         }
         
         if (section.getBoolean("enchanted", false)) {
@@ -321,7 +332,15 @@ public class WarpGUI implements Listener {
             return;
         }
         
-        warps = new ArrayList<>(plugin.getWarpManager().getAccessibleWarps(player));
+        // Bug fix: this used to re-fetch `warps` fresh from the accessible-warps list on
+        // every click. That's dangerous: the slot a player just clicked was rendered
+        // against the LIST AT RENDER TIME (in createGUI()), not whatever the list looks
+        // like right now. If a warp was added/removed/became inaccessible between render
+        // and click, this re-fetch could shift indices and either silently no-op (index
+        // now out of bounds) or - worse - resolve the click to a completely different
+        // warp than the one the player actually saw and clicked on. The `warps` field is
+        // already kept correct by createGUI() every time the menu is (re)opened; reusing
+        // it here keeps clicks consistent with what's on screen.
         
         for (Map.Entry<String, ButtonConfig> entry : buttons.entrySet()) {
             ButtonConfig btn = entry.getValue();
@@ -420,22 +439,49 @@ public class WarpGUI implements Listener {
         // correctly, just never read here, so it had no visible effect in the GUI.
         String displayLabel = warp.getDisplayName() != null ? warp.getDisplayName() : warp.getName();
         
-        String name = warpNameFormat.replace("{warp_name}", displayLabel)
-            .replace("{cooldown}", String.valueOf(warp.getCooldown()))
-            .replace("{delay}", String.valueOf(warp.getDelay()));
-        meta.setDisplayName(ChatColor.translateAlternateColorCodes('&', name));
+        // Bug fix: this used to substitute {warp_name} as a raw string into the template
+        // BEFORE rendering, then render the combined string once. That breaks the moment
+        // the template uses one format (e.g. '&' codes, like the default
+        // "&6&l{warp_name}") and the display name uses another (MiniMessage tags, e.g.
+        // "<gradient:red:blue>Castle") - per Adventure's own guidance, mixing MiniMessage
+        // and legacy formatting in one string has no supported, correct behavior.
+        // Rendering the template and the display label SEPARATELY (each in its own
+        // correct format) and composing them as Component children sidesteps the problem
+        // entirely - there's no restriction on mixing styles across a Component tree,
+        // only within a single raw string handed to one parser.
+        meta.displayName(renderTemplate(warpNameFormat, displayLabel, warp.getCooldown(), warp.getDelay()));
         
-        List<String> coloredLore = new ArrayList<>();
+        List<Component> renderedLore = new ArrayList<>();
         for (String line : warpLoreFormat) {
-            String processed = line.replace("{warp_name}", displayLabel)
-                .replace("{cooldown}", String.valueOf(warp.getCooldown()))
-                .replace("{delay}", String.valueOf(warp.getDelay()));
-            coloredLore.add(ChatColor.translateAlternateColorCodes('&', processed));
+            renderedLore.add(renderTemplate(line, displayLabel, warp.getCooldown(), warp.getDelay()));
         }
-        meta.setLore(coloredLore);
+        meta.lore(renderedLore);
         
         item.setItemMeta(meta);
         return item;
+    }
+    
+    /**
+     * Renders a GUI template string (which may use '&' codes, '§' codes, or MiniMessage
+     * tags) with {warp_name}/{cooldown}/{delay} placeholders, substituting the warp's
+     * display name as a SEPARATELY rendered Component rather than splicing it into the
+     * template as a raw string. This is what lets a '&'-coded template (the shipped
+     * default, e.g. "&6&l{warp_name}") and a MiniMessage-tagged display name (e.g.
+     * "<gradient:red:blue>Castle") both render correctly together - each half is parsed
+     * in its own correct format, then composed at the Component level, where mixing
+     * styles is fully supported (unlike mixing them within one raw string).
+     */
+    /**
+     * Renders a GUI template string (which may use '&' codes, '§' codes, or MiniMessage
+     * tags) with {warp_name}/{cooldown}/{delay} placeholders. See
+     * TextFormat.renderTemplate() for why each placeholder is rendered as its own
+     * separate Component instead of being spliced into the template as a raw string.
+     */
+    private Component renderTemplate(String template, String displayLabel, int cooldown, int delay) {
+        return TextFormat.renderTemplate(template,
+            "{warp_name}", displayLabel,
+            "{cooldown}", String.valueOf(cooldown),
+            "{delay}", String.valueOf(delay));
     }
     
     private void placeButtons() {
@@ -464,21 +510,25 @@ public class WarpGUI implements Listener {
             
             ItemStack item = btn.item.clone();
             
-            if (btn.updateOnEachPage && item.getItemMeta() != null) {
+            if (btn.updateOnEachPage) {
                 ItemMeta meta = item.getItemMeta();
-                String displayName = meta.getDisplayName();
-                displayName = displayName.replace("{current}", String.valueOf(currentPage + 1))
-                    .replace("{total}", String.valueOf(totalPages));
-                meta.setDisplayName(displayName);
-                
-                if (meta.getLore() != null) {
-                    List<String> lore = meta.getLore().stream()
-                        .map(line -> line.replace("{current}", String.valueOf(currentPage + 1))
-                            .replace("{total}", String.valueOf(totalPages)))
-                        .collect(Collectors.toList());
-                    meta.setLore(lore);
+                if (meta != null) {
+                    if (btn.rawNameTemplate != null) {
+                        String substituted = btn.rawNameTemplate
+                            .replace("{current}", String.valueOf(currentPage + 1))
+                            .replace("{total}", String.valueOf(totalPages));
+                        meta.displayName(TextFormat.render(substituted));
+                    }
+                    if (btn.rawLoreTemplate != null && !btn.rawLoreTemplate.isEmpty()) {
+                        List<Component> lore = btn.rawLoreTemplate.stream()
+                            .map(line -> line.replace("{current}", String.valueOf(currentPage + 1))
+                                .replace("{total}", String.valueOf(totalPages)))
+                            .map(TextFormat::render)
+                            .collect(Collectors.toList());
+                        meta.lore(lore);
+                    }
+                    item.setItemMeta(meta);
                 }
-                item.setItemMeta(meta);
             }
             
             gui.setItem(btn.slot, item);
@@ -573,5 +623,7 @@ public class WarpGUI implements Listener {
         String command;
         boolean closeOnClick;
         String clickSound;
+        String rawNameTemplate;
+        List<String> rawLoreTemplate;
     }
 }

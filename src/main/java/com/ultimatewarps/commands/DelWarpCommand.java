@@ -35,7 +35,7 @@ public class DelWarpCommand implements CommandExecutor, TabCompleter {
             return true;
         }
         wm.removeWarp(name);
-        player.sendMessage(UltimateWarps.getInstance().getConfigManager().getMessage("warp-deleted").replaceText(b -> b.matchLiteral("%name%").replacement(name)));
+        player.sendMessage(UltimateWarps.getInstance().getConfigManager().getMessage("warp-deleted", "name", name));
         return true;
     }
 

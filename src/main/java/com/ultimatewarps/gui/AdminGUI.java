@@ -3,13 +3,12 @@ package com.ultimatewarps.gui;
 import com.ultimatewarps.ChatInput;
 import com.ultimatewarps.ConfigManager;
 import com.ultimatewarps.HeadUtils;
+import com.ultimatewarps.TextFormat;
 import com.ultimatewarps.UltimateWarps;
 import com.ultimatewarps.Warp;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
@@ -27,7 +26,6 @@ public class AdminGUI implements InventoryHolder {
     private final int size;
     private final int warpSlots;
     private final ConfigManager config;
-    private final MiniMessage miniMessage = MiniMessage.miniMessage();
     private static final Map<Inventory, Warp> editInventories = new HashMap<>();
     // Bug fix: getInventory() used to unconditionally return null, breaking the
     // InventoryHolder contract (Bukkit internals and other plugins may call
@@ -45,7 +43,7 @@ public class AdminGUI implements InventoryHolder {
 
     public void open(int page) {
         this.page = page;
-        Component title = miniMessage.deserialize(config.adminGuiTitle());
+        Component title = TextFormat.render(config.adminGuiTitle());
         Inventory inv = Bukkit.createInventory(this, size, title);
         this.currentInventory = inv;
         fillBorders(inv);
@@ -64,18 +62,25 @@ public class AdminGUI implements InventoryHolder {
             }
 
             ItemMeta meta = head.getItemMeta();
+            // Bug fix: this used to concatenate a hardcoded "&6&l" prefix with the warp's
+            // display name into one raw string before a single render pass. That breaks
+            // the moment the display name uses a different format than the hardcoded
+            // prefix (e.g. a MiniMessage-tagged display name with a legacy '&' prefix) -
+            // per Adventure's own guidance, mixing MiniMessage and legacy formatting in
+            // one string has no supported, correct behavior. TextFormat.renderTemplate()
+            // renders the prefix and the display name as separate Components and composes
+            // them, so each is parsed correctly regardless of what format the other uses.
             String raw = warp.getDisplayName() != null ? warp.getDisplayName() : warp.getName();
-            String display = ChatColor.translateAlternateColorCodes('&', raw);
-            meta.setDisplayName("§6§l" + display);
+            meta.displayName(TextFormat.renderTemplate("&6&l{name}", "{name}", raw));
 
-            List<String> lore = new ArrayList<>();
-            lore.add("§f§lᴇɴᴀʙʟᴇᴅ: " + (warp.isEnabled() ? "§a§lʏᴇꜱ" : "§c§lɴᴏ"));
-            lore.add("§7ᴄᴏᴏʟᴅᴏᴡɴ: §f" + warp.getCooldown() + "s");
-            lore.add("§7ᴅᴇʟᴀʏ: §f" + warp.getDelay() + "s");
-            lore.add("§7ᴘᴇʀᴍɪꜱꜱɪᴏɴ: §f" + (warp.getPermission() != null ? warp.getPermission() : "ɴᴏɴᴇ"));
-            lore.add("");
-            lore.add("§e§lᴄʟɪᴄᴋ ᴛᴏ ᴇᴅɪᴛ ᴛʜɪꜱ ᴡᴀʀᴘ");
-            meta.setLore(lore);
+            List<Component> lore = new ArrayList<>();
+            lore.add(TextFormat.render("§f§lᴇɴᴀʙʟᴇᴅ: " + (warp.isEnabled() ? "§a§lʏᴇꜱ" : "§c§lɴᴏ")));
+            lore.add(TextFormat.render("§7ᴄᴏᴏʟᴅᴏᴡɴ: §f" + warp.getCooldown() + "s"));
+            lore.add(TextFormat.render("§7ᴅᴇʟᴀʏ: §f" + warp.getDelay() + "s"));
+            lore.add(TextFormat.render("§7ᴘᴇʀᴍɪꜱꜱɪᴏɴ: §f" + (warp.getPermission() != null ? warp.getPermission() : "ɴᴏɴᴇ")));
+            lore.add(Component.empty());
+            lore.add(TextFormat.render("§e§lᴄʟɪᴄᴋ ᴛᴏ ᴇᴅɪᴛ ᴛʜɪꜱ ᴡᴀʀᴘ"));
+            meta.lore(lore);
             head.setItemMeta(meta);
             inv.setItem(slot, head);
         }
@@ -120,8 +125,15 @@ public class AdminGUI implements InventoryHolder {
                 newWarp.setCooldown(config.globalDefaultCooldown());
                 newWarp.setDelay(config.globalDefaultDelay());
                 UltimateWarps.getInstance().getWarpManager().addWarp(newWarp);
-                player.sendMessage(config.getMessage("warp-created")
-                        .replaceText(b -> b.matchLiteral("%name%").replacement(name)));
+                // Bug fix: this used to call .replaceText() on an already-parsed
+                // Component, which just finds the literal text "%name%" inside the
+                // rendered tree and swaps in plain, unformatted text - it has nothing to
+                // do with MiniMessage parsing, so this never showed any of the warp's
+                // own formatting and could land the replacement inside whatever style
+                // happened to be active in the tree at that point. getMessage(path,
+                // placeholder, value) renders the template and the value correctly as
+                // one document via TextFormat.renderTemplate().
+                player.sendMessage(config.getMessage("warp-created", "name", name));
                 // Refresh the warp list and stay on the same page (or adjust if full)
                 warps = new ArrayList<>(UltimateWarps.getInstance().getWarpManager().getAllWarps());
                 // If the page now has zero warps, go to previous page (but not below 0)
@@ -146,7 +158,7 @@ public class AdminGUI implements InventoryHolder {
     }
 
     private void openWarpEditMenu(Warp warp) {
-        Component title = miniMessage.deserialize("<dark_gray>Edit: " + warp.getName());
+        Component title = TextFormat.renderTemplate("<dark_gray>Edit: {name}", "{name}", warp.getName());
         Inventory inv = Bukkit.createInventory(this, 27, title);
         this.currentInventory = inv;
         editInventories.put(inv, warp);
@@ -184,11 +196,11 @@ public class AdminGUI implements InventoryHolder {
             icon = icon.clone();
         }
         ItemMeta meta = icon.getItemMeta();
-        meta.setDisplayName("§d§lᴄᴜꜱᴛᴏᴍ ɪᴄᴏɴ");
-        List<String> lore = new ArrayList<>();
-        lore.add("§7ᴅʀᴀɢ ᴀɴ ɪᴛᴇᴍ ꜰʀᴏᴍ ʏᴏᴜʀ ɪɴᴠᴇɴᴛᴏʀʏ");
-        lore.add("§7ᴏɴᴛᴏ ᴛʜɪꜱ ꜱʟᴏᴛ ᴛᴏ ꜱᴇᴛ ɪᴛ ᴀꜱ ᴛʜᴇ ᴡᴀʀᴘ ɪᴄᴏɴ");
-        meta.setLore(lore);
+        meta.displayName(TextFormat.render("§d§lᴄᴜꜱᴛᴏᴍ ɪᴄᴏɴ"));
+        List<Component> lore = new ArrayList<>();
+        lore.add(TextFormat.render("§7ᴅʀᴀɢ ᴀɴ ɪᴛᴇᴍ ꜰʀᴏᴍ ʏᴏᴜʀ ɪɴᴠᴇɴᴛᴏʀʏ"));
+        lore.add(TextFormat.render("§7ᴏɴᴛᴏ ᴛʜɪꜱ ꜱʟᴏᴛ ᴛᴏ ꜱᴇᴛ ɪᴛ ᴀꜱ ᴛʜᴇ ᴡᴀʀᴘ ɪᴄᴏɴ"));
+        meta.lore(lore);
         icon.setItemMeta(meta);
         return icon;
     }
@@ -196,13 +208,18 @@ public class AdminGUI implements InventoryHolder {
     private ItemStack createDisplayNameItem(Warp warp) {
         ItemStack item = new ItemStack(Material.NAME_TAG);
         ItemMeta meta = item.getItemMeta();
-        meta.setDisplayName("§e§lꜱᴇᴛ ᴅɪꜱᴘʟᴀʏ ɴᴀᴍᴇ");
-        List<String> lore = new ArrayList<>();
+        meta.displayName(TextFormat.render("§e§lꜱᴇᴛ ᴅɪꜱᴘʟᴀʏ ɴᴀᴍᴇ"));
+        List<Component> lore = new ArrayList<>();
+        // Bug fix: this used to concatenate a hardcoded "§f§l" prefix with the display
+        // name into one raw string before a single render pass, breaking the moment the
+        // display name used a different format than the hardcoded prefix (e.g. a
+        // MiniMessage-tagged display name with a legacy '§' prefix).
+        // TextFormat.renderTemplate() renders the prefix and the display name as separate
+        // Components and composes them, so each is parsed correctly regardless of format.
         String raw = warp.getDisplayName() != null ? warp.getDisplayName() : warp.getName();
-        String display = ChatColor.translateAlternateColorCodes('&', raw);
-        lore.add("§f§lᴄᴜʀʀᴇɴᴛ: §f§l" + display);
-        lore.add("§7ᴄʟɪᴄᴋ ᴛᴏ ᴄʜᴀɴɢᴇ ᴅɪꜱᴘʟᴀʏ ɴᴀᴍᴇ ᴠɪᴀ ᴄʜᴀᴛ");
-        meta.setLore(lore);
+        lore.add(TextFormat.renderTemplate("§f§lᴄᴜʀʀᴇɴᴛ: {name}", "{name}", raw));
+        lore.add(TextFormat.render("§7ᴄʟɪᴄᴋ ᴛᴏ ᴄʜᴀɴɢᴇ ᴅɪꜱᴘʟᴀʏ ɴᴀᴍᴇ ᴠɪᴀ ᴄʜᴀᴛ"));
+        meta.lore(lore);
         item.setItemMeta(meta);
         return item;
     }
@@ -212,8 +229,7 @@ public class AdminGUI implements InventoryHolder {
             case 10:
                 warp.setEnabled(!warp.isEnabled());
                 warp.save();
-                player.sendMessage(config.getMessage("warp-edited")
-                        .replaceText(b -> b.matchLiteral("%name%").replacement(warp.getName())));
+                player.sendMessage(config.getMessage("warp-edited", "name", warp.getName()));
                 openWarpEditMenu(warp);
                 break;
             case 12:
@@ -223,8 +239,7 @@ public class AdminGUI implements InventoryHolder {
                     warp.setPermission(null);
                 }
                 warp.save();
-                player.sendMessage(config.getMessage("warp-edited")
-                        .replaceText(b -> b.matchLiteral("%name%").replacement(warp.getName())));
+                player.sendMessage(config.getMessage("warp-edited", "name", warp.getName()));
                 openWarpEditMenu(warp);
                 break;
             case 14:
@@ -236,8 +251,7 @@ public class AdminGUI implements InventoryHolder {
                     }
                     warp.setDisplayName(input);
                     warp.save();
-                    player.sendMessage(config.getMessage("warp-edited")
-                            .replaceText(b -> b.matchLiteral("%name%").replacement(warp.getName())));
+                    player.sendMessage(config.getMessage("warp-edited", "name", warp.getName()));
                     openWarpEditMenu(warp);
                 });
                 break;
@@ -255,8 +269,7 @@ public class AdminGUI implements InventoryHolder {
                         int cd = Integer.parseInt(input);
                         warp.setCooldown(cd);
                         warp.save();
-                        player.sendMessage(config.getMessage("warp-edited")
-                                .replaceText(b -> b.matchLiteral("%name%").replacement(warp.getName())));
+                        player.sendMessage(config.getMessage("warp-edited", "name", warp.getName()));
                     } catch (NumberFormatException e) {
                         player.sendMessage(Component.text("Invalid number. Enter seconds.", NamedTextColor.RED));
                     }
@@ -274,8 +287,7 @@ public class AdminGUI implements InventoryHolder {
                         int del = Integer.parseInt(input);
                         warp.setDelay(del);
                         warp.save();
-                        player.sendMessage(config.getMessage("warp-edited")
-                                .replaceText(b -> b.matchLiteral("%name%").replacement(warp.getName())));
+                        player.sendMessage(config.getMessage("warp-edited", "name", warp.getName()));
                     } catch (NumberFormatException e) {
                         player.sendMessage(Component.text("Invalid number. Enter seconds.", NamedTextColor.RED));
                     }
@@ -285,14 +297,12 @@ public class AdminGUI implements InventoryHolder {
             case 24:
                 warp.setLocation(player.getLocation());
                 warp.save();
-                player.sendMessage(config.getMessage("warp-edited")
-                        .replaceText(b -> b.matchLiteral("%name%").replacement(warp.getName())));
+                player.sendMessage(config.getMessage("warp-edited", "name", warp.getName()));
                 openWarpEditMenu(warp);
                 break;
             case 26:
                 UltimateWarps.getInstance().getWarpManager().removeWarp(warp.getName());
-                player.sendMessage(config.getMessage("warp-deleted")
-                        .replaceText(b -> b.matchLiteral("%name%").replacement(warp.getName())));
+                player.sendMessage(config.getMessage("warp-deleted", "name", warp.getName()));
                 player.closeInventory();
                 // Refresh the warp list and adjust page if needed
                 warps = new ArrayList<>(UltimateWarps.getInstance().getWarpManager().getAllWarps());
@@ -312,8 +322,7 @@ public class AdminGUI implements InventoryHolder {
             warp.setIcon(cursorItem.clone());
             warp.save();
             player.setItemOnCursor(null);
-            player.sendMessage(config.getMessage("warp-edited")
-                    .replaceText(b -> b.matchLiteral("%name%").replacement(warp.getName())));
+            player.sendMessage(config.getMessage("warp-edited", "name", warp.getName()));
             openWarpEditMenu(warp);
         }
     }
@@ -321,10 +330,10 @@ public class AdminGUI implements InventoryHolder {
     private ItemStack createEditItem(String texture, String name, String... lore) {
         ItemStack item = HeadUtils.getHead(texture);
         ItemMeta meta = item.getItemMeta();
-        meta.setDisplayName(name);
-        List<String> loreList = new ArrayList<>();
-        for (String s : lore) loreList.add(s);
-        meta.setLore(loreList);
+        meta.displayName(TextFormat.render(name));
+        List<Component> loreList = new ArrayList<>();
+        for (String s : lore) loreList.add(TextFormat.render(s));
+        meta.lore(loreList);
         item.setItemMeta(meta);
         return item;
     }

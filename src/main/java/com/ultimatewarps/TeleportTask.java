@@ -4,7 +4,6 @@ import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.bossbar.BossBar.Color;
 import net.kyori.adventure.bossbar.BossBar.Overlay;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.title.Title;
 import org.bukkit.Location;
 import org.bukkit.Particle;
@@ -45,7 +44,6 @@ public class TeleportTask extends BukkitRunnable {
     private final String displayLabel;
     private boolean cancelled = false;
     private final ConfigManager config;
-    private final MiniMessage miniMessage = MiniMessage.miniMessage();
 
     public TeleportTask(Player player, Location destination, int delaySeconds, String warpName) {
         this(player, destination, delaySeconds, warpName, warpName);
