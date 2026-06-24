@@ -1,4 +1,4 @@
-<img width="1774" height="887" alt="uwarps_banner" src="https://github.com/user-attachments/assets/82285da8-1caf-456d-9ed0-e5a6c3fdad41" />
+<img width="1774" height="887" alt="uwarp-v3" src="https://github.com/user-attachments/assets/11b724fd-5f0d-437d-b038-8aeae9b91854" />
 <p align="center">
   <b style="font-size: 18px;">Advanced warp management plugin for Paper 1.21.x</b><br>
   <sub style="color: #94a3b8; font-size: 14px;">Stunning GUIs • Immersive Teleports • Player-Created Warps • LuckPerms Integration • Full Customization</sub>
