@@ -6,13 +6,8 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.util.io.BukkitObjectInputStream;
-import org.bukkit.util.io.BukkitObjectOutputStream;
 
 import java.io.File;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.util.Base64;
 
 public class Warp {
 
@@ -66,17 +61,14 @@ public class Warp {
         yml.set("delay", delay);
         yml.set("permission", permission);
 
-        // Fix: Use proper ItemStack serialization
+        // Store icon using YAML-native ItemStack serialization (ConfigurationSerializable).
+        // This stores the material as a namespaced string key (e.g. "minecraft:diamond")
+        // rather than as a Java-serialized object, so icons survive cross-version migrations
+        // where Minecraft renames materials between versions. The old format (BukkitObjectOutputStream
+        // base64) baked in the internal Java class structure and broke whenever a material
+        // name changed, which is what caused "Material cannot be null" errors on load.
         if (icon != null) {
-            try {
-                ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                BukkitObjectOutputStream boos = new BukkitObjectOutputStream(baos);
-                boos.writeObject(icon);
-                boos.close();
-                yml.set("icon", Base64.getEncoder().encodeToString(baos.toByteArray()));
-            } catch (Exception e) {
-                UltimateWarps.getInstance().getLogger().warning("Could not save icon for warp " + name);
-            }
+            yml.set("icon", icon);
         }
         if (displayName != null) {
             yml.set("display-name", displayName);
@@ -111,16 +103,55 @@ public class Warp {
         warp.permission = yml.getString("permission", null);
         warp.file = file;
 
-        // Fix: Use proper ItemStack deserialization
         if (yml.contains("icon")) {
-            try {
-                byte[] bytes = Base64.getDecoder().decode(yml.getString("icon"));
-                ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
-                BukkitObjectInputStream bois = new BukkitObjectInputStream(bais);
-                warp.icon = (ItemStack) bois.readObject();
-                bois.close();
-            } catch (Exception e) {
-                UltimateWarps.getInstance().getLogger().warning("Could not load icon for warp " + name);
+            // Try YAML-native format first (new format: ConfigurationSerializable map).
+            // Fall back to the legacy base64/BukkitObjectOutputStream format for warps
+            // saved by older versions of this plugin, so existing data isn't lost on upgrade.
+            // The next save() will automatically rewrite it in the new format.
+            Object raw = yml.get("icon");
+            if (raw instanceof ItemStack loaded) {
+                // YAML-native: validate material is actually known on this server version
+                // before accepting it. If the warp was saved on a newer server with a
+                // material that doesn't exist here (e.g. items added in a later MC version),
+                // accept the null/AIR material silently and fall back to the default icon
+                // rather than crashing or logging a confusing error.
+                if (loaded.getType() != null && loaded.getType() != org.bukkit.Material.AIR) {
+                    warp.icon = loaded;
+                } else {
+                    UltimateWarps.getInstance().getLogger().info(
+                            "Icon for warp " + name + " uses a material not available in this " +
+                            "server version - reverting to default icon.");
+                }
+            } else if (raw instanceof String base64) {
+                // Legacy base64 format - migrate transparently on load.
+                // Bukkit's ConfigurationSerialization logger prints its own ERROR-level stack
+                // trace before the exception reaches our catch block, which we can't suppress
+                // from inside the catch. Instead, silence that specific logger for the duration
+                // of the deserialization attempt so only our clean INFO message appears.
+                java.util.logging.Logger csLogger = java.util.logging.Logger.getLogger(
+                        "org.bukkit.configuration.serialization.ConfigurationSerialization");
+                java.util.logging.Level prevLevel = csLogger.getLevel();
+                try {
+                    csLogger.setLevel(java.util.logging.Level.OFF);
+                    byte[] bytes = java.util.Base64.getDecoder().decode(base64);
+                    java.io.ByteArrayInputStream bais = new java.io.ByteArrayInputStream(bytes);
+                    org.bukkit.util.io.BukkitObjectInputStream bois = new org.bukkit.util.io.BukkitObjectInputStream(bais);
+                    ItemStack loaded = (ItemStack) bois.readObject();
+                    bois.close();
+                    if (loaded != null && loaded.getType() != null && loaded.getType() != org.bukkit.Material.AIR) {
+                        warp.icon = loaded;
+                    } else {
+                        UltimateWarps.getInstance().getLogger().info(
+                                "Icon for warp " + name + " uses a material not available in this " +
+                                "server version - reverting to default icon.");
+                    }
+                } catch (Exception e) {
+                    UltimateWarps.getInstance().getLogger().info(
+                            "Icon for warp " + name + " could not be loaded (material may not " +
+                            "exist in this server version) - reverting to default icon.");
+                } finally {
+                    csLogger.setLevel(prevLevel);
+                }
             }
         }
         // Load display name

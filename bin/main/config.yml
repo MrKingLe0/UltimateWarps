@@ -1,11 +1,11 @@
-#==============================================================================================
-#    __  ______  _            __        _      __                
-#   / / / / / /_(_)_ _  ___ _/ /____   | | /| / /__ ________  ___
-#  / /_/ / / __/ /  ' \/ _ `/ __/ -_)  | |/ |/ / _ `/ __/ _ \/_-<
-#  \____/_/\__/_/_/_/_/\_,_/\__/\__/   |__/|__/\_,_/_/ / .__/___/
-#                                                      /_/         
-#  UltimateWarps - v3.0 by King_Le0_ | Knock Me on Discord for support! username: King_Le0_
-#==============================================================================================
+#========================================================================================================
+#          __  ______  _            __        _      __                
+#         / / / / / /_(_)_ _  ___ _/ /____   | | /| / /__ ________  ___
+#        / /_/ / / __/ /  ' \/ _ `/ __/ -_)  | |/ |/ / _ `/ __/ _ \/_-<
+#        \____/_/\__/_/_/_/_/\_,_/\__/\__/   |__/|__/\_,_/_/ / .__/___/
+#                                                           /_/         
+# UltimateWarps - v3.0.1 by King_Le0_, Join discord server for support. https://discord.gg/r4gRhda8Mw
+#========================================================================================================
 
 # General settings
 settings:
@@ -118,13 +118,13 @@ messages:
   teleport-cancelled-move: "<red>❌<gradient:#ff5555:#ffaa00>ᴛᴇʟᴇᴘᴏʀᴛ ᴄᴀɴᴄᴇʟʟᴇᴅ ʙᴇᴄᴀᴜsᴇ ʏᴏᴜ ᴍᴏᴠᴇᴅ!</gradient>"
   teleport-cancelled-damage: "<red>💥<gradient:#ff5555:#ffaa00>ᴛᴇʟᴇᴘᴏʀᴛ ᴄᴀɴᴄᴇʟʟᴇᴅ ʙᴇᴄᴀᴜsᴇ ʏᴏᴜ ᴛᴏᴏᴋ ᴅᴀᴍᴀɢᴇ!</gradient>"
   teleportation-confirmed: "<green>✅<gradient:#55ff55:#00aa00>ʏᴏᴜ ʜᴀᴠᴇ ʙᴇᴇɴ ᴛᴇʟᴇᴘᴏʀᴛᴇᴅ ᴛᴏ <white>%warp%</white>!</gradient>"
-  warp-not-found: "<red>🚫<gradient:#ff5555:#ffaa00>ᴡᴀʀᴘ ɴᴏᴛ ғᴏᴜɴᴅ!</gradient>"
+  warp-not-found: "<red>🚫<gradient:#ff5555:#ffaa00>ᴡᴀʀᴘ ɴᴏᴛ ꜰᴏᴜɴᴅ!</gradient>"
   no-permission: "<red>🚫<gradient:#ff5555:#ffaa00>ʏᴏᴜ ᴅᴏ ɴᴏᴛ ʜᴀᴠᴇ ᴘᴇʀᴍɪssɪᴏɴ!</gradient>"
   cooldown-active: "<blue>⏳<gradient:#ff5555:#ffaa00>ʏᴏᴜ ᴍᴜsᴛ ᴡᴀɪᴛ <white><b>%seconds%</b></white> sᴇᴄᴏɴᴅs ʙᴇғᴏʀᴇ ᴜsɪɴɢ ᴛʜɪs ᴡᴀʀᴘ ᴀɢᴀɪɴ.</gradient>"
-  spawn-set: "<green>🌍<gradient:#55ff55:#00aa00>sᴜᴄᴄᴇssғᴜʟʟʏ sᴇᴛ sᴘᴀᴡɴ ʟᴏᴄᴀᴛɪᴏɴ!</gradient>"
+  spawn-set: "<green>🌍<gradient:#55ff55:#00aa00>sᴜᴄᴄᴇssꜰᴜʟʟʏ sᴇᴛ sᴘᴀᴡɴ ʟᴏᴄᴀᴛɪᴏɴ!</gradient>"
   spawn-not-set: "<red>🚫<gradient:#ff5555:#ffaa00>sᴘᴀᴡɴ ʟᴏᴄᴀᴛɪᴏɴ ɪs ɴᴏᴛ sᴇᴛ!</gradient>"
   spawn-deleted: "<red>🗑<gradient:#55ff55:#00aa00>sᴘᴀᴡɴ ʟᴏᴄᴀᴛɪᴏɴ ᴅᴇʟᴇᴛᴇᴅ!</gradient>"
-  warp-created: "<blue>🌍<gradient:#55ff55:#00aa00>sᴜᴄᴄᴇssғᴜʟʟʏ ᴄʀᴇᴀᴛᴇᴅ ᴡᴀʀᴘ <white><b>%name%</b></white>!</gradient>"
-  warp-deleted: "<red>🗑<gradient:#55ff55:#00aa00>sᴜᴄᴄᴇssғᴜʟʟʏ ᴅᴇʟᴇᴛᴇᴅ ᴡᴀʀᴘ <white><b>%name%</b></white>!</gradient>"
+  warp-created: "<blue>🌍<gradient:#55ff55:#00aa00>sᴜᴄᴄᴇssꜰᴜʟʟʏ ᴄʀᴇᴀᴛᴇᴅ ᴡᴀʀᴘ <white><b>%name%</b></white>!</gradient>"
+  warp-deleted: "<red>🗑<gradient:#55ff55:#00aa00>sᴜᴄᴄᴇssꜰᴜʟʟʏ ᴅᴇʟᴇᴛᴇᴅ ᴡᴀʀᴘ <white><b>%name%</b></white>!</gradient>"
   warp-edited: "<blue>🌍<gradient:#55ff55:#00aa00>ᴡᴀʀᴘ <white><b>%name%</b></white> ᴜᴘᴅᴀᴛᴇᴅ!</gradient>"
-  reload-success: "<blue>🌍<gradient:#55ff55:#00aa00>ᴜʟᴛɪᴍᴀᴛᴇᴡᴀʀᴘs ᴄᴏɴғɪɢᴜʀᴀᴛɪᴏɴ ᴀɴᴅ ᴡᴀʀᴘs ʀᴇʟᴏᴀᴅᴇᴅ!</gradient>"
+  reload-success: "<blue>🌍<gradient:#55ff55:#00aa00>ᴜʟᴛɪᴍᴀᴛᴇᴡᴀʀᴘs ᴄᴏɴꜰɪɢᴜʀᴀᴛɪᴏɴ ᴀɴᴅ ᴡᴀʀᴘs ʀᴇʟᴏᴀᴅᴇᴅ!</gradient>"

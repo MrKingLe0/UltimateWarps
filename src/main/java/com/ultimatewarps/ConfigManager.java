@@ -128,12 +128,7 @@ public class ConfigManager {
     }
     
     public Sound spawnSoundType() {
-        String key = config.getString("spawn.sound.type", "BLOCK_NOTE_BLOCK_PLING");
-        try {
-            return Sound.valueOf(key.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            return Sound.BLOCK_NOTE_BLOCK_PLING;
-        }
+        return parseSound(config.getString("spawn.sound.type", "BLOCK_NOTE_BLOCK_PLING"), Sound.BLOCK_NOTE_BLOCK_PLING);
     }
     
     public float spawnSoundVolume() { 
@@ -249,12 +244,7 @@ public class ConfigManager {
     }
     
     public Sound warpSoundType() {
-        String key = config.getString("warp.sound.type", "BLOCK_NOTE_BLOCK_PLING");
-        try {
-            return Sound.valueOf(key.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            return Sound.BLOCK_NOTE_BLOCK_PLING;
-        }
+        return parseSound(config.getString("warp.sound.type", "BLOCK_NOTE_BLOCK_PLING"), Sound.BLOCK_NOTE_BLOCK_PLING);
     }
     
     public float warpSoundVolume() { 
@@ -479,6 +469,29 @@ public class ConfigManager {
 
     public Component getNoPermissionMessage() {
         return getMessage("no-permission");
+    }
+
+    // Sound.valueOf(String) was removed in Paper 1.21.1 when Sound changed from an enum
+    // to a registry-backed interface. Using it throws IncompatibleClassChangeError at
+    // runtime on 1.21.1 servers even though it compiles fine against older Paper API JARs.
+    // This helper is the correct cross-version replacement: it looks up the sound by a
+    // minecraft: NamespacedKey through the Paper RegistryAccess API, which works on both
+    // 1.21.1 and all later versions. Package-accessible (not private) so PlayerWarpGUI and
+    // PlayerWarpsConfigManager can use the same fix without duplicating it.
+    public static Sound parseSound(String key, Sound fallback) {
+        if (key == null) return fallback;
+        try {
+            // Config stores sounds in UPPER_SNAKE_CASE (e.g. BLOCK_NOTE_BLOCK_PLING).
+            // NamespacedKey expects lower_snake_case (e.g. block.note_block.pling is the
+            // display name, but the registry key itself is block_note_block_pling).
+            NamespacedKey namespacedKey = NamespacedKey.minecraft(key.toLowerCase());
+            Sound sound = RegistryAccess.registryAccess()
+                    .getRegistry(RegistryKey.SOUND_EVENT)
+                    .get(namespacedKey);
+            return sound != null ? sound : fallback;
+        } catch (Exception e) {
+            return fallback;
+        }
     }
 
     // Helper to parse color

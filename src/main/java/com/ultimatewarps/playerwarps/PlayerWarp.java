@@ -5,13 +5,8 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.util.io.BukkitObjectInputStream;
-import org.bukkit.util.io.BukkitObjectOutputStream;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.util.Base64;
 import java.util.UUID;
 
 /**
@@ -78,17 +73,9 @@ public class PlayerWarp {
         if (displayName != null) yml.set("display-name", displayName);
         if (description != null) yml.set("description", description);
 
+        // Same YAML-native serialization fix as Warp.java - see that file for full explanation.
         if (icon != null) {
-            try {
-                ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                BukkitObjectOutputStream boos = new BukkitObjectOutputStream(baos);
-                boos.writeObject(icon);
-                boos.close();
-                yml.set("icon", Base64.getEncoder().encodeToString(baos.toByteArray()));
-            } catch (Exception e) {
-                com.ultimatewarps.UltimateWarps.getInstance().getLogger()
-                        .warning("Could not save icon for player warp " + name + " (owner " + ownerId + ")");
-            }
+            yml.set("icon", icon);
         }
 
         try {
@@ -135,15 +122,40 @@ public class PlayerWarp {
         warp.file = file;
 
         if (yml.contains("icon")) {
-            try {
-                byte[] bytes = Base64.getDecoder().decode(yml.getString("icon"));
-                ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
-                BukkitObjectInputStream bois = new BukkitObjectInputStream(bais);
-                warp.icon = (ItemStack) bois.readObject();
-                bois.close();
-            } catch (Exception e) {
-                com.ultimatewarps.UltimateWarps.getInstance().getLogger()
-                        .warning("Could not load icon for player warp " + name);
+            Object raw = yml.get("icon");
+            if (raw instanceof ItemStack loaded) {
+                if (loaded.getType() != null && loaded.getType() != org.bukkit.Material.AIR) {
+                    warp.icon = loaded;
+                } else {
+                    com.ultimatewarps.UltimateWarps.getInstance().getLogger().info(
+                            "Icon for player warp " + name + " uses a material not available " +
+                            "in this server version - reverting to default icon.");
+                }
+            } else if (raw instanceof String base64) {
+                java.util.logging.Logger csLogger = java.util.logging.Logger.getLogger(
+                        "org.bukkit.configuration.serialization.ConfigurationSerialization");
+                java.util.logging.Level prevLevel = csLogger.getLevel();
+                try {
+                    csLogger.setLevel(java.util.logging.Level.OFF);
+                    byte[] bytes = java.util.Base64.getDecoder().decode(base64);
+                    java.io.ByteArrayInputStream bais = new java.io.ByteArrayInputStream(bytes);
+                    org.bukkit.util.io.BukkitObjectInputStream bois = new org.bukkit.util.io.BukkitObjectInputStream(bais);
+                    ItemStack loaded = (ItemStack) bois.readObject();
+                    bois.close();
+                    if (loaded != null && loaded.getType() != null && loaded.getType() != org.bukkit.Material.AIR) {
+                        warp.icon = loaded;
+                    } else {
+                        com.ultimatewarps.UltimateWarps.getInstance().getLogger().info(
+                                "Icon for player warp " + name + " uses a material not available " +
+                                "in this server version - reverting to default icon.");
+                    }
+                } catch (Exception e) {
+                    com.ultimatewarps.UltimateWarps.getInstance().getLogger().info(
+                            "Icon for player warp " + name + " could not be loaded (material may " +
+                            "not exist in this server version) - reverting to default icon.");
+                } finally {
+                    csLogger.setLevel(prevLevel);
+                }
             }
         }
 

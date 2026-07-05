@@ -45,7 +45,7 @@ public class PlayerWarpGUI implements Listener {
     private int rows;
     private boolean fillEmptySlots;
     private ItemStack fillItem;
-    private String clickSound;
+    private Sound clickSound;
     private float clickSoundVolume;
     private float clickSoundPitch;
 
@@ -129,11 +129,12 @@ public class PlayerWarpGUI implements Listener {
 
         ConfigurationSection soundSection = guiConfig.getConfigurationSection("click-sound");
         if (soundSection != null) {
-            clickSound = soundSection.getString("sound", "UI_BUTTON_CLICK");
+            clickSound = com.ultimatewarps.ConfigManager.parseSound(
+                    soundSection.getString("sound", "UI_BUTTON_CLICK"), Sound.UI_BUTTON_CLICK);
             clickSoundVolume = (float) soundSection.getDouble("volume", 1.0);
             clickSoundPitch = (float) soundSection.getDouble("pitch", 1.0);
         } else {
-            clickSound = "UI_BUTTON_CLICK";
+            clickSound = Sound.UI_BUTTON_CLICK;
             clickSoundVolume = 1.0f;
             clickSoundPitch = 1.0f;
         }
@@ -487,10 +488,8 @@ public class PlayerWarpGUI implements Listener {
     }
 
     private void playClickSound() {
-        try {
-            player.playSound(player.getLocation(), Sound.valueOf(clickSound), clickSoundVolume, clickSoundPitch);
-        } catch (IllegalArgumentException ignored) {
-            // invalid sound name in config - skip silently, this is purely cosmetic
+        if (clickSound != null) {
+            player.playSound(player.getLocation(), clickSound, clickSoundVolume, clickSoundPitch);
         }
     }
 

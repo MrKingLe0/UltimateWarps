@@ -146,12 +146,9 @@ public class PlayerWarpsConfigManager {
     public boolean soundEnabled() { return config.getBoolean("teleport.sound.enabled", true); }
 
     public Sound soundType() {
-        String key = config.getString("teleport.sound.type", "BLOCK_NOTE_BLOCK_PLING");
-        try {
-            return Sound.valueOf(key.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            return Sound.BLOCK_NOTE_BLOCK_PLING;
-        }
+        return com.ultimatewarps.ConfigManager.parseSound(
+                config.getString("teleport.sound.type", "BLOCK_NOTE_BLOCK_PLING"),
+                Sound.BLOCK_NOTE_BLOCK_PLING);
     }
 
     public float soundVolume() { return (float) config.getDouble("teleport.sound.volume", 1.0); }

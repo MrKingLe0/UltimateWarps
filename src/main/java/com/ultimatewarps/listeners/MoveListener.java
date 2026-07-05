@@ -5,19 +5,13 @@ import com.ultimatewarps.UltimateWarps;
 import com.ultimatewarps.playerwarps.PlayerWarpTeleportTask;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 
 public class MoveListener implements Listener {
 
-    // Bug fix: this previously looked up the active task from a map that was never
-    // populated (UltimateWarps#activeTeleports was always empty) and then did nothing
-    // with it anyway. Now that the map is actually kept up to date by TeleportTask,
-    // use it to cancel teleports the instant a player moves, instead of waiting up to
-    // a full second for TeleportTask's own per-tick movement check to catch it.
-    //
-    // Also checks the separate player-warp teleport map - admin and player warp
-    // countdowns are tracked independently, so both have to be checked here.
     @EventHandler
     public void onMove(PlayerMoveEvent event) {
         if (!event.hasChangedPosition()) return;
@@ -31,6 +25,27 @@ public class MoveListener implements Listener {
         PlayerWarpTeleportTask playerWarpTask = UltimateWarps.getInstance().getActivePlayerWarpTeleports().get(player.getUniqueId());
         if (playerWarpTask != null) {
             playerWarpTask.cancelIfMoved();
+        }
+    }
+
+    // settings.teleport-cancel-on-damage in config.yml. The config key and message
+    // (teleport-cancelled-damage) already existed but no listener ever fired them -
+    // the feature was silently non-functional. Runs at MONITOR priority so damage
+    // is confirmed as actually landing (not cancelled by another plugin) before we
+    // abort the teleport.
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onDamage(EntityDamageEvent event) {
+        if (!(event.getEntity() instanceof Player player)) return;
+        if (!UltimateWarps.getInstance().getConfigManager().shouldCancelOnDamage()) return;
+
+        TeleportTask task = UltimateWarps.getInstance().getActiveTeleports().get(player.getUniqueId());
+        if (task != null) {
+            task.cancelTask(UltimateWarps.getInstance().getConfigManager().getTeleportCancelledDamageMessage());
+        }
+
+        PlayerWarpTeleportTask playerWarpTask = UltimateWarps.getInstance().getActivePlayerWarpTeleports().get(player.getUniqueId());
+        if (playerWarpTask != null) {
+            playerWarpTask.cancelTask(UltimateWarps.getInstance().getConfigManager().getTeleportCancelledDamageMessage());
         }
     }
 }
