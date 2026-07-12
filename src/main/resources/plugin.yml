@@ -53,7 +53,7 @@ permissions:
     default: true
   ultimatewarps.warp.*:
     description: Access to all warps.
-    default: true
+    default: op
   ultimatewarps.warp.<name>:
     description: Access to a specific warp.
     default: true
