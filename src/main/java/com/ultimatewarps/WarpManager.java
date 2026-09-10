@@ -56,13 +56,6 @@ public class WarpManager {
         return Collections.unmodifiableCollection(warps.values());
     }
 
-    /**
-     * Improvement: warp names used to flow straight from /setwarp and the admin GUI into
-     * a filename with zero validation. A name containing '/', '\', or '..' could escape
-     * the warps folder entirely (path traversal), and other special characters could
-     * produce an invalid or confusing filename. This is the single choke point both
-     * warp-creation paths go through, so validating here protects all of them at once.
-     */
     private static final java.util.regex.Pattern VALID_WARP_NAME = java.util.regex.Pattern.compile("^[A-Za-z0-9_-]{1,32}$");
 
     public boolean isValidWarpName(String name) {

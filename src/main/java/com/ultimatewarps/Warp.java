@@ -8,6 +8,8 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.inventory.ItemStack;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Warp {
 
@@ -17,8 +19,25 @@ public class Warp {
     private int cooldown = 0;
     private int delay = 0;
     private String permission = null;
-    private ItemStack icon;          // null = default
-    private String displayName;      // null = use name
+    private ItemStack icon;
+    private String displayName;
+
+    private boolean glow = false;
+
+    private List<String> customLore = new ArrayList<>();
+
+    private int slot = -1;
+
+    private boolean customEffects = false;
+    private boolean effectParticleEnabled = true;
+    private String effectParticleType = "DUST";
+    private int effectParticleCount = 30;
+    private String effectDustColor = "#5555FF";
+    private float effectDustSize = 1.0f;
+    private boolean effectSoundEnabled = true;
+    private String effectSoundType = "BLOCK_NOTE_BLOCK_PLING";
+    private float effectSoundVolume = 1.0f;
+    private float effectSoundPitch = 1.0f;
 
     private File file;
 
@@ -45,6 +64,48 @@ public class Warp {
     public void setDisplayName(String displayName) { this.displayName = displayName; }
     public void setFile(File file) { this.file = file; }
 
+    public boolean isGlow() { return glow; }
+    public void setGlow(boolean glow) { this.glow = glow; }
+
+    public List<String> getCustomLore() { return new ArrayList<>(customLore); }
+    public void setCustomLore(List<String> lore) { this.customLore = lore != null ? new ArrayList<>(lore) : new ArrayList<>(); }
+
+    public int getSlot() { return slot; }
+    public void setSlot(int slot) { this.slot = slot; }
+
+    public boolean isCustomEffects() { return customEffects; }
+    public void setCustomEffects(boolean customEffects) { this.customEffects = customEffects; }
+    public boolean isEffectParticleEnabled() { return effectParticleEnabled; }
+    public void setEffectParticleEnabled(boolean v) { this.effectParticleEnabled = v; }
+    public String getEffectParticleType() { return effectParticleType; }
+    public void setEffectParticleType(String v) { this.effectParticleType = v; }
+    public int getEffectParticleCount() { return effectParticleCount; }
+    public void setEffectParticleCount(int v) { this.effectParticleCount = v; }
+    public String getEffectDustColor() { return effectDustColor; }
+    public void setEffectDustColor(String v) { this.effectDustColor = v; }
+    public float getEffectDustSize() { return effectDustSize; }
+    public void setEffectDustSize(float v) { this.effectDustSize = v; }
+    public boolean isEffectSoundEnabled() { return effectSoundEnabled; }
+    public void setEffectSoundEnabled(boolean v) { this.effectSoundEnabled = v; }
+    public String getEffectSoundType() { return effectSoundType; }
+    public void setEffectSoundType(String v) { this.effectSoundType = v; }
+    public float getEffectSoundVolume() { return effectSoundVolume; }
+    public void setEffectSoundVolume(float v) { this.effectSoundVolume = v; }
+    public float getEffectSoundPitch() { return effectSoundPitch; }
+    public void setEffectSoundPitch(float v) { this.effectSoundPitch = v; }
+
+    public void seedEffectsFromGlobal(ConfigManager cfg) {
+        this.effectParticleEnabled = cfg.warpParticleEnabled();
+        this.effectParticleType = cfg.warpParticleTypeRaw();
+        this.effectParticleCount = cfg.warpParticleCount();
+        this.effectDustColor = cfg.warpDustColorRaw();
+        this.effectDustSize = cfg.warpDustSize();
+        this.effectSoundEnabled = cfg.warpSoundEnabled();
+        this.effectSoundType = cfg.warpSoundTypeRaw();
+        this.effectSoundVolume = cfg.warpSoundVolume();
+        this.effectSoundPitch = cfg.warpSoundPitch();
+    }
+
     public void save() {
         if (file == null) {
             file = new File(UltimateWarps.getInstance().getWarpManager().getWarpsFolder(), name + ".yml");
@@ -61,17 +122,34 @@ public class Warp {
         yml.set("delay", delay);
         yml.set("permission", permission);
 
-        // Store icon using YAML-native ItemStack serialization (ConfigurationSerializable).
-        // This stores the material as a namespaced string key (e.g. "minecraft:diamond")
-        // rather than as a Java-serialized object, so icons survive cross-version migrations
-        // where Minecraft renames materials between versions. The old format (BukkitObjectOutputStream
-        // base64) baked in the internal Java class structure and broke whenever a material
-        // name changed, which is what caused "Material cannot be null" errors on load.
         if (icon != null) {
             yml.set("icon", icon);
         }
         if (displayName != null) {
             yml.set("display-name", displayName);
+        }
+
+        if (glow) {
+            yml.set("glow", true);
+        }
+
+        if (!customLore.isEmpty()) {
+            yml.set("lore", customLore);
+        }
+
+        yml.set("slot", slot);
+
+        if (customEffects) {
+            yml.set("effects.enabled", true);
+            yml.set("effects.particle.enabled", effectParticleEnabled);
+            yml.set("effects.particle.type", effectParticleType);
+            yml.set("effects.particle.count", effectParticleCount);
+            yml.set("effects.particle.dust-color", effectDustColor);
+            yml.set("effects.particle.dust-size", effectDustSize);
+            yml.set("effects.sound.enabled", effectSoundEnabled);
+            yml.set("effects.sound.type", effectSoundType);
+            yml.set("effects.sound.volume", effectSoundVolume);
+            yml.set("effects.sound.pitch", effectSoundPitch);
         }
 
         try {
@@ -104,17 +182,10 @@ public class Warp {
         warp.file = file;
 
         if (yml.contains("icon")) {
-            // Try YAML-native format first (new format: ConfigurationSerializable map).
-            // Fall back to the legacy base64/BukkitObjectOutputStream format for warps
-            // saved by older versions of this plugin, so existing data isn't lost on upgrade.
-            // The next save() will automatically rewrite it in the new format.
+
             Object raw = yml.get("icon");
             if (raw instanceof ItemStack loaded) {
-                // YAML-native: validate material is actually known on this server version
-                // before accepting it. If the warp was saved on a newer server with a
-                // material that doesn't exist here (e.g. items added in a later MC version),
-                // accept the null/AIR material silently and fall back to the default icon
-                // rather than crashing or logging a confusing error.
+
                 if (loaded.getType() != null && loaded.getType() != org.bukkit.Material.AIR) {
                     warp.icon = loaded;
                 } else {
@@ -123,11 +194,7 @@ public class Warp {
                             "server version - reverting to default icon.");
                 }
             } else if (raw instanceof String base64) {
-                // Legacy base64 format - migrate transparently on load.
-                // Bukkit's ConfigurationSerialization logger prints its own ERROR-level stack
-                // trace before the exception reaches our catch block, which we can't suppress
-                // from inside the catch. Instead, silence that specific logger for the duration
-                // of the deserialization attempt so only our clean INFO message appears.
+
                 java.util.logging.Logger csLogger = java.util.logging.Logger.getLogger(
                         "org.bukkit.configuration.serialization.ConfigurationSerialization");
                 java.util.logging.Level prevLevel = csLogger.getLevel();
@@ -154,8 +221,25 @@ public class Warp {
                 }
             }
         }
-        // Load display name
+
         warp.displayName = yml.getString("display-name", null);
+        warp.glow = yml.getBoolean("glow", false);
+
+        warp.customLore = yml.getStringList("lore");
+        warp.slot = yml.getInt("slot", -1);
+
+        warp.customEffects = yml.getBoolean("effects.enabled", false);
+        if (warp.customEffects) {
+            warp.effectParticleEnabled = yml.getBoolean("effects.particle.enabled", true);
+            warp.effectParticleType = yml.getString("effects.particle.type", "DUST");
+            warp.effectParticleCount = yml.getInt("effects.particle.count", 30);
+            warp.effectDustColor = yml.getString("effects.particle.dust-color", "#5555FF");
+            warp.effectDustSize = (float) yml.getDouble("effects.particle.dust-size", 1.0);
+            warp.effectSoundEnabled = yml.getBoolean("effects.sound.enabled", true);
+            warp.effectSoundType = yml.getString("effects.sound.type", "BLOCK_NOTE_BLOCK_PLING");
+            warp.effectSoundVolume = (float) yml.getDouble("effects.sound.volume", 1.0);
+            warp.effectSoundPitch = (float) yml.getDouble("effects.sound.pitch", 1.0);
+        }
 
         return warp;
     }

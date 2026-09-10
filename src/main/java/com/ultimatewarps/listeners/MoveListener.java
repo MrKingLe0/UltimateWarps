@@ -28,11 +28,6 @@ public class MoveListener implements Listener {
         }
     }
 
-    // settings.teleport-cancel-on-damage in config.yml. The config key and message
-    // (teleport-cancelled-damage) already existed but no listener ever fired them -
-    // the feature was silently non-functional. Runs at MONITOR priority so damage
-    // is confirmed as actually landing (not cancelled by another plugin) before we
-    // abort the teleport.
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onDamage(EntityDamageEvent event) {
         if (!(event.getEntity() instanceof Player player)) return;

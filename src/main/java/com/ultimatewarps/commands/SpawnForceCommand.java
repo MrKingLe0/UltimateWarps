@@ -40,11 +40,7 @@ public class SpawnForceCommand implements CommandExecutor {
 
         String playerName = args[0];
         Player targetPlayer = Bukkit.getPlayer(playerName);
-        
-        // Bug fix: playerName was being concatenated directly into MiniMessage templates,
-        // so a name containing MiniMessage tag syntax would be parsed as formatting rather
-        // than shown as plain text. Use a placeholder resolver so it's always treated as
-        // literal text.
+
         if (targetPlayer != null && targetPlayer.isOnline()) {
             targetPlayer.teleport(spawn);
             plugin.getEffectManager().playTeleportEffect(targetPlayer, "Spawn");

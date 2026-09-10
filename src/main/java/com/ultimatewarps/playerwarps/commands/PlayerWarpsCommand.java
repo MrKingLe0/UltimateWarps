@@ -25,29 +25,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/**
- * /playerwarps (alias /pwarps) - everything related to player-created warps.
- *
- * Subcommands:
- *   /playerwarps                       - open the browser GUI
- *   /playerwarps gui                   - same as above, explicit
- *   /playerwarps set <name>             - create a warp at your location
- *   /playerwarps del <name>             - delete one of your own warps
- *   /playerwarps edit <name>            - open the edit menu for one of your own warps
- *   /playerwarps list [player]          - list your own warps, or another player's public ones
- *   /playerwarps warp <name>            - teleport to your own warp
- *   /playerwarps warp <owner> <name>    - teleport to another player's public warp
- *   /playerwarps admin info <player>    - staff: see a player's warp count/limit
- *   /playerwarps admin wipe <player>    - staff: delete every warp a player owns
- *   /playerwarps admin tp <owner> <name> - staff: teleport to any warp regardless of visibility
- *
- * Bug fix: teleporting used to be the unnamed default branch of the subcommand switch
- * ("/playerwarps <name>" / "/playerwarps <owner> <name>"), which meant a player-created
- * warp literally named "edit", "del", "set", "list", "gui", or "admin" could never be
- * teleported to directly - the switch always matched the reserved word first and ran
- * that subcommand instead. Teleporting now lives behind its own explicit "warp"
- * subcommand, so the only name that's actually reserved is the word "warp" itself.
- */
 public class PlayerWarpsCommand implements CommandExecutor, TabCompleter {
 
     private final UltimateWarps plugin;
@@ -108,9 +85,6 @@ public class PlayerWarpsCommand implements CommandExecutor, TabCompleter {
         return true;
     }
 
-    // ===================================================================================
-    //  /playerwarps set <name>
-    // ===================================================================================
     private boolean handleSet(Player player, String[] args) {
         PlayerWarpsConfigManager config = plugin.getPlayerWarpsConfigManager();
         PlayerWarpManager manager = plugin.getPlayerWarpManager();
@@ -186,9 +160,6 @@ public class PlayerWarpsCommand implements CommandExecutor, TabCompleter {
         return true;
     }
 
-    // ===================================================================================
-    //  /playerwarps del <name>
-    // ===================================================================================
     private boolean handleDelete(Player player, String[] args) {
         PlayerWarpsConfigManager config = plugin.getPlayerWarpsConfigManager();
         if (args.length < 2) {
@@ -205,9 +176,6 @@ public class PlayerWarpsCommand implements CommandExecutor, TabCompleter {
         return true;
     }
 
-    // ===================================================================================
-    //  /playerwarps edit <name>
-    // ===================================================================================
     private boolean handleEdit(Player player, String[] args) {
         PlayerWarpsConfigManager config = plugin.getPlayerWarpsConfigManager();
         if (args.length < 2) {
@@ -223,9 +191,6 @@ public class PlayerWarpsCommand implements CommandExecutor, TabCompleter {
         return true;
     }
 
-    // ===================================================================================
-    //  /playerwarps list [player]
-    // ===================================================================================
     private boolean handleList(Player player, String[] args) {
         PlayerWarpManager manager = plugin.getPlayerWarpManager();
         List<PlayerWarp> warps;
@@ -257,17 +222,11 @@ public class PlayerWarpsCommand implements CommandExecutor, TabCompleter {
         return true;
     }
 
-    // ===================================================================================
-    //  /playerwarps warp <name>   and   /playerwarps warp <owner> <name>
-    // ===================================================================================
     private boolean handleTeleportShorthand(Player player, String[] args) {
         PlayerWarpsConfigManager config = plugin.getPlayerWarpsConfigManager();
         PlayerWarpManager manager = plugin.getPlayerWarpManager();
         PlayerWarp warp;
 
-        // args[0] is the literal word "warp" here, so the actual warp name/owner
-        // arguments are shifted one slot later than they used to be when this method
-        // was reached directly off the top-level switch.
         if (args.length < 2) {
             player.sendMessage(Component.text(
                     "Usage: /playerwarps warp <name> or /playerwarps warp <owner> <name>",
@@ -276,14 +235,14 @@ public class PlayerWarpsCommand implements CommandExecutor, TabCompleter {
         }
 
         if (args.length == 2) {
-            // /playerwarps warp <name> - the player's own warp.
+
             warp = manager.getWarp(player.getUniqueId(), args[1]);
             if (warp == null) {
                 player.sendMessage(config.getRawMessage("warp-not-found"));
                 return true;
             }
         } else {
-            // /playerwarps warp <owner> <name> - someone else's warp.
+
             warp = manager.getWarp(args[1], args[2]);
             if (warp == null) {
                 player.sendMessage(config.getRawMessage("warp-not-found"));
@@ -330,18 +289,16 @@ public class PlayerWarpsCommand implements CommandExecutor, TabCompleter {
                 plugin.getCooldownManager().setCooldown(player, cooldownKey, cooldownSeconds);
             }
         } else {
-            new PlayerWarpTeleportTask(player, warp.getLocation(), delay, displayLabel).runTaskTimer(plugin, 0L, 20L);
+
+            Runnable onSuccess = null;
             if (!player.hasPermission("ultimatewarps.bypass.cooldown") && cooldownSeconds > 0) {
                 int finalCooldown = cooldownSeconds;
-                Bukkit.getScheduler().runTaskLater(plugin, () ->
-                        plugin.getCooldownManager().setCooldown(player, cooldownKey, finalCooldown), delay * 20L);
+                onSuccess = () -> plugin.getCooldownManager().setCooldown(player, cooldownKey, finalCooldown);
             }
+            new PlayerWarpTeleportTask(player, warp.getLocation(), delay, displayLabel, onSuccess).runTaskTimer(plugin, 0L, 20L);
         }
     }
 
-    // ===================================================================================
-    //  /playerwarps admin ...
-    // ===================================================================================
     private boolean handleAdmin(Player player, String[] args) {
         if (!player.hasPermission("ultimatewarps.playerwarps.admin")) {
             player.sendMessage(plugin.getPlayerWarpsConfigManager().getRawMessage("no-permission"));
@@ -402,19 +359,12 @@ public class PlayerWarpsCommand implements CommandExecutor, TabCompleter {
         }
     }
 
-    // ===================================================================================
-    //  Tab completion
-    // ===================================================================================
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (!(sender instanceof Player player)) return Collections.emptyList();
 
         if (args.length == 1) {
-            // Bug fix: warp names used to be suggested here too, since teleporting was the
-            // default/unnamed branch of the subcommand switch. Now that teleporting lives
-            // behind its own "warp" subcommand, only the actual subcommand words belong at
-            // the top level - this also means a warp can finally be named "edit", "del",
-            // etc. without colliding with the subcommand of the same name.
+
             List<String> options = new ArrayList<>(List.of("gui", "set", "del", "edit", "list", "warp"));
             if (player.hasPermission("ultimatewarps.playerwarps.admin")) options.add("admin");
             String partial = args[0].toLowerCase();
@@ -431,8 +381,7 @@ public class PlayerWarpsCommand implements CommandExecutor, TabCompleter {
                         .sorted().collect(Collectors.toList());
             }
             if (sub.equals("warp")) {
-                // /playerwarps warp <name> - suggest the player's own warps first, then
-                // online player names (for the "/playerwarps warp <owner> <name>" form).
+
                 List<String> options = new ArrayList<>(plugin.getPlayerWarpManager().getWarpsByOwner(player.getUniqueId())
                         .stream().map(PlayerWarp::getName).toList());
                 options.addAll(Bukkit.getOnlinePlayers().stream().map(Player::getName).toList());
@@ -450,7 +399,7 @@ public class PlayerWarpsCommand implements CommandExecutor, TabCompleter {
         }
 
         if (args.length == 3 && args[0].equalsIgnoreCase("warp")) {
-            // /playerwarps warp <owner> <name> - suggest that owner's warp names.
+
             OfflinePlayer owner = Bukkit.getOfflinePlayer(args[1]);
             String partial = args[2].toLowerCase();
             return plugin.getPlayerWarpManager().getWarpsByOwner(owner.getUniqueId()).stream()
@@ -469,7 +418,7 @@ public class PlayerWarpsCommand implements CommandExecutor, TabCompleter {
         }
 
         if (args.length == 4 && args[0].equalsIgnoreCase("admin") && args[1].equalsIgnoreCase("tp")) {
-            // /playerwarps admin tp <owner> <name> - suggest that owner's warp names.
+
             OfflinePlayer owner = Bukkit.getOfflinePlayer(args[2]);
             String partial = args[3].toLowerCase();
             return plugin.getPlayerWarpManager().getWarpsByOwner(owner.getUniqueId()).stream()

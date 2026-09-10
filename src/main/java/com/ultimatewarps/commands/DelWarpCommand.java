@@ -39,10 +39,6 @@ public class DelWarpCommand implements CommandExecutor, TabCompleter {
         return true;
     }
 
-    // Improvement: no tab-completion meant admins had to type the full warp name from
-    // memory, with no feedback until after hitting enter - a typo would just bounce off
-    // "warp not found" with no hint about what was actually available, or worse, silently
-    // delete a different similarly-named warp than intended.
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1 && sender.hasPermission("ultimatewarps.admin")) {

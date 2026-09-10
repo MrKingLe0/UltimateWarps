@@ -18,10 +18,6 @@ enabled: true
 # ultimatewarps.playerwarps.limit.unlimited overrides everything.
 default-limit: 1
 
-gui:
-  rows: 4
-  title: "<dark_aqua><b>Player Warps</b></dark_aqua>"
-
 # Teleport behavior for player warps - separate from the admin warp/spawn
 # settings in config.yml, so you can make player warps slower/costlier
 # than admin warps (or vice versa) without them interfering with each other.

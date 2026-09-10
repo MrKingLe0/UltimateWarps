@@ -29,13 +29,11 @@ public class SpawnLocationManager {
             return;
         }
         spawnData = YamlConfiguration.loadConfiguration(spawnDataFile);
-        
-        // Load cached spawn location
+
         if (spawnData.contains("spawn-location")) {
             cachedLocation = (Location) spawnData.get("spawn-location");
         }
-        
-        // Load pending teleports
+
         if (spawnData.contains("pending-spawn-teleports")) {
             for (String uuidStr : spawnData.getConfigurationSection("pending-spawn-teleports").getKeys(false)) {
                 try {
@@ -74,38 +72,34 @@ public class SpawnLocationManager {
         spawnData.set("spawn-location", null);
         saveSpawnData();
     }
-    
-    // ========== PENDING SPAWN TELEPORT METHODS ==========
-    
+
     public void setPendingSpawnTeleport(UUID playerId, Location spawn) {
         pendingSpawnTeleports.put(playerId, spawn);
         spawnData.set("pending-spawn-teleports." + playerId.toString(), spawn);
         saveSpawnData();
     }
-    
+
     public Location getPendingSpawnTeleport(UUID playerId) {
         Location loc = pendingSpawnTeleports.remove(playerId);
         spawnData.set("pending-spawn-teleports." + playerId.toString(), null);
         saveSpawnData();
         return loc;
     }
-    
+
     public boolean hasPendingSpawnTeleport(UUID playerId) {
         return pendingSpawnTeleports.containsKey(playerId);
     }
-    
+
     public void removePendingSpawnTeleport(UUID playerId) {
         pendingSpawnTeleports.remove(playerId);
         spawnData.set("pending-spawn-teleports." + playerId.toString(), null);
         saveSpawnData();
     }
-    
-    // ========== FIRST JOIN TRACKING METHODS ==========
-    
+
     public boolean hasJoinedBefore(UUID playerId) {
         return spawnData.contains("joined-before." + playerId.toString());
     }
-    
+
     public void setJoinedBefore(UUID playerId) {
         spawnData.set("joined-before." + playerId.toString(), true);
         saveSpawnData();

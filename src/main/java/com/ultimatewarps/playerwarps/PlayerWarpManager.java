@@ -13,23 +13,15 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-/**
- * Stores and looks up player-created warps. Each owner gets their own subfolder under
- * playerwarps/, one file per warp, so two different players can each have a warp named
- * "home" without any collision, and wiping/listing one player's warps never requires
- * scanning every other player's files.
- */
 public class PlayerWarpManager {
 
     private static final Pattern VALID_WARP_NAME = Pattern.compile("^[A-Za-z0-9_-]{1,32}$");
 
-    // Key: ownerId + ":" + lowercase warp name
     private final Map<String, PlayerWarp> warpsByKey = new ConcurrentHashMap<>();
     private File rootFolder;
 
     public PlayerWarpManager(UltimateWarps plugin) {
-        // plugin reference kept implicit via UltimateWarps.getInstance() elsewhere,
-        // matching the rest of this codebase's static-singleton access pattern.
+
     }
 
     public File getRootFolder() {
@@ -50,13 +42,6 @@ public class PlayerWarpManager {
         return ownerId.toString() + ":" + name.toLowerCase();
     }
 
-    // "warp" is reserved - it's the literal subcommand word for /playerwarps warp <name>,
-    // so a player warp named "warp" would be unreachable by name (handleTeleportShorthand
-    // would never see it as the <name> argument, only as the subcommand itself). This is
-    // the same class of bug that used to affect "edit"/"del"/"set"/"list"/"gui"/"admin"
-    // before teleporting got its own explicit subcommand - "warp" is the one word that
-    // still needs to stay off-limits, so it's blocked here at creation time instead of
-    // silently producing an unreachable warp.
     private static final java.util.Set<String> RESERVED_WARP_NAMES = java.util.Set.of("warp");
 
     public boolean isValidWarpName(String name) {
@@ -101,7 +86,6 @@ public class PlayerWarpManager {
         return warpsByKey.get(key(ownerId, name));
     }
 
-    /** Look up a player warp by owner name + warp name, for commands like /playerwarps <owner> <warp>. */
     public PlayerWarp getWarp(String ownerName, String name) {
         String lowerName = name.toLowerCase();
         String lowerOwner = ownerName.toLowerCase();
@@ -130,7 +114,6 @@ public class PlayerWarpManager {
         return Collections.unmodifiableCollection(warpsByKey.values());
     }
 
-    /** Public warps belonging to anyone, or any warp belonging to the viewer themselves, or anything if they're an admin/moderator. */
     public List<PlayerWarp> getVisibleWarps(Player viewer) {
         boolean canSeeAll = viewer.hasPermission("ultimatewarps.playerwarps.admin");
         return warpsByKey.values().stream()
@@ -158,7 +141,6 @@ public class PlayerWarpManager {
         }
     }
 
-    /** Removes every warp owned by a player - used for /playerwarps admin wipe <player>. */
     public int removeAllWarpsByOwner(UUID ownerId) {
         List<String> toRemove = warpsByKey.values().stream()
                 .filter(w -> w.getOwnerId().equals(ownerId))

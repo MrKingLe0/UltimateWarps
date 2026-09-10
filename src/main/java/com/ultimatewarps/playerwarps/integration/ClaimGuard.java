@@ -7,17 +7,6 @@ import org.bukkit.entity.Player;
 import java.lang.reflect.Method;
 import java.util.UUID;
 
-/**
- * Soft-dependency bridge to GriefPrevention and WorldGuard, implemented with pure
- * reflection rather than compile-time dependencies. This plugin does not ship either
- * plugin's jar or declare them as build dependencies at all - every lookup happens by
- * class/method name at runtime, inside a server that may or may not have them installed.
- *
- * This trades a bit of verbosity for a hard guarantee: a missing plugin, or even a
- * future API change in GriefPrevention/WorldGuard, can only ever disable this one
- * feature gracefully (logged once, then treated as "check passed") - it can never break
- * compilation or prevent UltimateWarps itself from loading.
- */
 public class ClaimGuard {
 
     private static Boolean griefPreventionAvailable = null;
@@ -48,13 +37,6 @@ public class ClaimGuard {
         }
     }
 
-    /**
-     * @return true if the location is inside a GriefPrevention claim owned by the given
-     *         player. If GriefPrevention isn't installed, or the reflective lookup fails
-     *         for any reason, returns true (the check is treated as "passed" rather than
-     *         blocking warp creation on a check that can't actually run) - whether this
-     *         check applies at all is gated by playerwarps-config.yml on the caller's side.
-     */
     public static boolean isInsideOwnClaim(Player player, Location location) {
         if (!isGriefPreventionAvailable()) return true;
         try {
@@ -65,7 +47,7 @@ public class ClaimGuard {
             Method getClaimAt = dataStoreClass.getMethod("getClaimAt", Location.class, boolean.class,
                     Class.forName("me.ryanhamshire.GriefPrevention.Claim"));
             Object claim = getClaimAt.invoke(dataStore, location, false, null);
-            if (claim == null) return false; // not inside any claim at all
+            if (claim == null) return false;
 
             Class<?> claimClass = claim.getClass();
             Object ownerId = claimClass.getField("ownerID").get(claim);
@@ -77,10 +59,6 @@ public class ClaimGuard {
         }
     }
 
-    /**
-     * @return true if the location is NOT inside any WorldGuard region. If WorldGuard
-     *         isn't installed, or the reflective lookup fails, returns true.
-     */
     public static boolean isOutsideAnyRegion(Location location) {
         if (!isWorldGuardAvailable()) return true;
         try {
@@ -89,16 +67,12 @@ public class ClaimGuard {
             Object platform = worldGuardClass.getMethod("getPlatform").invoke(wgInstance);
             Object regionContainer = platform.getClass().getMethod("getRegionContainer").invoke(platform);
 
-            // RegionContainer#get(World) takes WorldGuard's wrapped World type on newer
-            // versions, but the Bukkit-facing convenience method that accepts a raw
-            // org.bukkit.World has been kept across 7.x for integrations exactly like
-            // this one - using it avoids needing WorldEdit's BukkitAdapter as a dependency.
             Object regionManager;
             try {
                 Method getByBukkitWorld = regionContainer.getClass().getMethod("get", org.bukkit.World.class);
                 regionManager = getByBukkitWorld.invoke(regionContainer, location.getWorld());
             } catch (NoSuchMethodException nsme) {
-                // Fall back to the documented com.sk89q.worldedit.world.World overload.
+
                 Class<?> bukkitAdapterClass = Class.forName("com.sk89q.worldedit.bukkit.BukkitAdapter");
                 Object adaptedWorld = bukkitAdapterClass.getMethod("adapt", org.bukkit.World.class)
                         .invoke(null, location.getWorld());
@@ -132,11 +106,6 @@ public class ClaimGuard {
         }
     }
 
-    /**
-     * Combined check driven by playerwarps-config.yml. Returns null if the location
-     * passes every enabled check, or a reason key (used to look up a player-facing
-     * message) if it fails one.
-     */
     public static String checkLocation(Player player, Location location, boolean requireOwnClaim, boolean requireOutsideRegion) {
         if (requireOwnClaim && !isInsideOwnClaim(player, location)) {
             return "not-in-own-claim";
@@ -147,4 +116,3 @@ public class ClaimGuard {
         return null;
     }
 }
-

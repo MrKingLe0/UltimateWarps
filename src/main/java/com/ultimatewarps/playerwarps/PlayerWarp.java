@@ -9,23 +9,17 @@ import org.bukkit.inventory.ItemStack;
 import java.io.File;
 import java.util.UUID;
 
-/**
- * A warp created and owned by a player, as opposed to an admin-created Warp.
- * Stored separately from admin warps, one file per warp, under a per-owner folder
- * (playerwarps/<owner-uuid>/<warp-name>.yml) so warps from different players can never
- * collide on name and an owner's warps can be listed/wiped without scanning everything.
- */
 public class PlayerWarp {
 
     private final String name;
     private final UUID ownerId;
-    private String ownerName; // cached display name, refreshed on use - never used for lookups
+    private String ownerName;
     private Location location;
-    private String displayName;       // null = use name
-    private ItemStack icon;           // null = default
-    private boolean isPublic = true;  // private warps are only visible/usable by the owner (and admins)
-    private String description;       // shown in lore - purely cosmetic
-    private long createdAt;           // epoch millis
+    private String displayName;
+    private ItemStack icon;
+    private boolean isPublic = true;
+    private String description;
+    private long createdAt;
 
     private File file;
 
@@ -73,7 +67,6 @@ public class PlayerWarp {
         if (displayName != null) yml.set("display-name", displayName);
         if (description != null) yml.set("description", description);
 
-        // Same YAML-native serialization fix as Warp.java - see that file for full explanation.
         if (icon != null) {
             yml.set("icon", icon);
         }
@@ -88,7 +81,7 @@ public class PlayerWarp {
 
     public static PlayerWarp load(File file, UUID ownerIdFromFolder) {
         YamlConfiguration yml = YamlConfiguration.loadConfiguration(file);
-        String name = file.getName().substring(0, file.getName().length() - 4); // strip ".yml"
+        String name = file.getName().substring(0, file.getName().length() - 4);
 
         String ownerIdStr = yml.getString("owner-id");
         UUID ownerId;

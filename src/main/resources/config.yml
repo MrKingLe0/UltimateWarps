@@ -4,12 +4,11 @@
 #        / /_/ / / __/ /  ' \/ _ `/ __/ -_)  | |/ |/ / _ `/ __/ _ \/_-<
 #        \____/_/\__/_/_/_/_/\_,_/\__/\__/   |__/|__/\_,_/_/ / .__/___/
 #                                                           /_/         
-# UltimateWarps - v3.0.1 by King_Le0_, Join discord server for support. https://discord.gg/r4gRhda8Mw
+# UltimateWarps - v3.1.0 by King_Le0_, Join discord server for support. https://discord.gg/r4gRhda8Mw
 #========================================================================================================
 
 # General settings
 settings:
-  teleport-cancel-on-move: true
   teleport-cancel-on-damage: true
 
 # spawn settings
@@ -77,7 +76,6 @@ warp:
     pitch: 1.0
 
 global:
-  cancel-on-move: true
   default-cooldown: 5
   default-delay: 5
 
@@ -92,18 +90,6 @@ rank-multipliers:
   mvp:
     cooldown: 0.5
     delay: 0.5
-
-# Legacy rank multipliers (for permission-based ranks)
-ranks:
-  default:
-    cooldown-multiplier: 1.0
-    delay-multiplier: 1.0
-  vip:
-    cooldown-multiplier: 0.5
-    delay-multiplier: 0.7
-  mvp:
-    cooldown-multiplier: 0.25
-    delay-multiplier: 0.4
 
 # default GUI settings
 gui:

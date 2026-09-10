@@ -129,7 +129,7 @@
 #  / /_/ / / __/ /  ' \/ _ `/ __/ -_)  | |/ |/ / _ `/ __/ _ \/_-<
 #  \____/_/\__/_/_/_/_/\_,_/\__/\__/   |__/|__/\_,_/_/ / .__/___/
 #                                                      /_/         
-#  UltimateWarps - v3.0 by King_Le0_ | Knock Me on Discord for support! username: King_Le0_
+#  UltimateWarps - v3.1.0 by King_Le0_ | Knock Me on Discord for support! username: King_Le0_
 #==============================================================================================
 spawn:
   enabled: true

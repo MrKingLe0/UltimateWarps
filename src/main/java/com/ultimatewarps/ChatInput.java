@@ -50,7 +50,7 @@ public class ChatInput {
         BukkitRunnable task = timeouts.remove(uuid);
         if (task != null) task.cancel();
         if (callback != null) {
-            // ✅ Always execute callback on the main server thread
+
             UltimateWarps plugin = UltimateWarps.getInstance();
             if (Bukkit.isPrimaryThread()) {
                 callback.accept(message);

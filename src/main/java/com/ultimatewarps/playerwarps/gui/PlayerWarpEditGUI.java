@@ -21,13 +21,6 @@ import org.bukkit.inventory.meta.ItemMeta;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Self-contained edit menu for a single player-owned warp. Implements InventoryHolder
- * correctly (passing `this` into Bukkit.createInventory and returning the live inventory
- * from getInventory()) and registers its own click listener per-instance - this avoids
- * the historical bug class found in the admin GUIs (a null holder making a shared
- * listener's branch unreachable, or getInventory() always returning null).
- */
 public class PlayerWarpEditGUI implements InventoryHolder, Listener {
 
     private final Player player;
@@ -97,11 +90,7 @@ public class PlayerWarpEditGUI implements InventoryHolder, Listener {
     }
 
     private ItemStack renameItem() {
-        // Bug fix: this used to concatenate a hardcoded "&fCurrent: &f" prefix with the
-        // player's own display name into one raw string before a single render pass,
-        // breaking the moment the display name used a different format than the
-        // hardcoded prefix (e.g. a MiniMessage-tagged display name). renderTemplate()
-        // renders the prefix and the value as separate Components and composes them.
+
         String display = warp.getDisplayName() != null ? warp.getDisplayName() : warp.getName();
         return named(Material.NAME_TAG, "&e&lSet Display Name",
                 TextFormat.renderTemplate("&fCurrent: {value}", "{value}", display),
@@ -143,7 +132,7 @@ public class PlayerWarpEditGUI implements InventoryHolder, Listener {
         if (!event.getWhoClicked().getUniqueId().equals(player.getUniqueId())) return;
 
         int rawSlot = event.getRawSlot();
-        if (rawSlot >= inventory.getSize()) return; // allow normal interaction with player's own inventory
+        if (rawSlot >= inventory.getSize()) return;
         event.setCancelled(true);
 
         switch (rawSlot) {
@@ -202,9 +191,7 @@ public class PlayerWarpEditGUI implements InventoryHolder, Listener {
     public void onClose(InventoryCloseEvent event) {
         if (!event.getInventory().equals(inventory)) return;
         if (reopening) {
-            // We closed this ourselves to send the player into a ChatInput prompt; the
-            // callback will call open() again shortly, which needs this listener to
-            // still be registered. Consume the flag and skip unregistering this time.
+
             reopening = false;
             return;
         }

@@ -26,11 +26,6 @@ import java.io.File;
 import java.util.*;
 import java.util.stream.Collectors;
 
-/**
- * The player-warps browser GUI. Entirely separate inventory/listener/layout file from
- * the admin WarpGUI - the two features share no GUI state, so a layout change to one
- * can never affect the other.
- */
 public class PlayerWarpGUI implements Listener {
 
     private final UltimateWarps plugin;
@@ -166,8 +161,7 @@ public class PlayerWarpGUI implements Listener {
             for (int i = 9; i <= 44; i++) warpSlots.add(i);
         }
         if (warpSlots.isEmpty()) {
-            // Defensive: an empty list here would make warpsPerPage 0 and divide-by-zero
-            // when computing total pages, if a server owner's config ever ends up empty.
+
             for (int i = 9; i <= 44; i++) warpSlots.add(i);
         }
 
@@ -183,11 +177,7 @@ public class PlayerWarpGUI implements Listener {
                     btn.hideIfNoPrevious = btnSection.getBoolean("hide-if-no-previous", false);
                     btn.hideIfNoNext = btnSection.getBoolean("hide-if-no-next", false);
                     btn.updateOnEachPage = btnSection.getBoolean("update-on-each-page", false);
-                    // Bug fix: substitution placeholders ({current}/{total}/{filter}) used
-                    // to run on the legacy string form AFTER the item was already built as
-                    // a Component via loadItem() - same mismatch as the admin WarpGUI had.
-                    // Keeping the raw template here lets substitution happen before the one
-                    // and only render pass.
+
                     btn.rawNameTemplate = btnSection.getString("name", key);
                     btn.rawLoreTemplate = btnSection.getStringList("lore");
                     buttons.put(key, btn);
@@ -205,11 +195,6 @@ public class PlayerWarpGUI implements Listener {
             material = Material.valueOf(defaultMaterial);
         }
 
-        // Bug fix: this never read "head-texture" from the config at all, so every
-        // PLAYER_HEAD button (previous-page, next-page, etc.) always rendered as a plain
-        // default Steve head no matter what base64 texture was configured. Same fix as
-        // the admin WarpGUI's loadItem() - route through HeadUtils.getHead() whenever the
-        // material is a player head and a texture is actually configured.
         ItemStack item;
         if (material == Material.PLAYER_HEAD && section.contains("head-texture")) {
             item = HeadUtils.getHead(section.getString("head-texture"));
@@ -286,9 +271,7 @@ public class PlayerWarpGUI implements Listener {
         if (customIcon != null) {
             item = customIcon;
         } else {
-            // Default icon: the owner's own head, a nice personal touch that needs no
-            // texture configuration and is always available since every owner has a
-            // real Minecraft skin.
+
             item = new ItemStack(Material.PLAYER_HEAD);
             SkullMeta skullMeta = (SkullMeta) item.getItemMeta();
             if (skullMeta != null) {
@@ -306,14 +289,6 @@ public class PlayerWarpGUI implements Listener {
         String nameFormat = owned ? ownWarpNameFormat : warpNameFormat;
         List<String> loreFormat = owned ? ownWarpLoreFormat : warpLoreFormat;
 
-        // Bug fix: name/lore used to splice the display name, owner name, and visibility
-        // text into the template as raw strings and render the combined string once. That
-        // breaks the moment the template uses one format (e.g. '&' codes, like the
-        // default templates) and the display name uses another (MiniMessage tags) - per
-        // Adventure's own guidance, mixing MiniMessage and legacy formatting in one string
-        // has no supported, correct behavior. TextFormat.renderTemplate() renders each
-        // placeholder's value as its own Component and composes them, sidestepping the
-        // problem entirely.
         PlayerWarpsConfigManager pwConfig = plugin.getPlayerWarpsConfigManager();
         meta.displayName(TextFormat.renderTemplate(nameFormat,
                 "{warp_name}", displayLabel,
@@ -361,9 +336,7 @@ public class PlayerWarpGUI implements Listener {
     private void placeButtons() {
         int perPage = warpSlots.size();
         int totalPages = warps.isEmpty() ? 1 : (int) Math.ceil((double) warps.size() / perPage);
-        // For the info button we always want the player's TRUE total warp count
-        // regardless of the current "my warps only" filter, so go straight to the
-        // manager rather than counting the (possibly filtered) `warps` list.
+
         int trueOwnedCount = plugin.getPlayerWarpManager().countWarpsByOwner(player.getUniqueId());
         int limit = plugin.getPlayerWarpsConfigManager().getWarpLimit(player);
         String limitDisplay = limit >= Integer.MAX_VALUE ? "\u221E" : String.valueOf(limit);
@@ -380,12 +353,7 @@ public class PlayerWarpGUI implements Listener {
             ItemMeta meta = item.getItemMeta();
             if (meta != null) {
                 if (btn.rawNameTemplate != null) {
-                    // Bug fix: only {filter} was ever substituted here - {current}/{total}
-                    // (used by the info button's name: "ᴘᴀɢᴇ {current}/{total}") had no
-                    // substitution at all and showed up as the literal placeholder text in
-                    // game. Every dynamic token a button name might use is now substituted
-                    // here in one place, the same way the lore substitution below already
-                    // handles all four of its tokens.
+
                     String nameTemplate = btn.rawNameTemplate
                             .replace("{filter}", myWarpsOnly ? "&eMy Warps" : "&bAll Warps")
                             .replace("{current}", String.valueOf(currentPage + 1))
@@ -445,8 +413,7 @@ public class PlayerWarpGUI implements Listener {
         if (owned) {
             player.performCommand("playerwarps warp " + warp.getName());
         } else {
-            // Visit someone else's warp through the owner-qualified path so a name
-            // collision between two different players' warps can never resolve wrong.
+
             player.performCommand("playerwarps warp " + warp.getOwnerName() + " " + warp.getName());
         }
     }

@@ -33,7 +33,6 @@ public class SpawnCommand implements CommandExecutor {
             return true;
         }
 
-        // Anti-spam
         long lastExec = commandCooldown.getOrDefault(player.getUniqueId(), 0L);
         long now = System.currentTimeMillis();
         if (now - lastExec < 1000) {
@@ -52,8 +51,6 @@ public class SpawnCommand implements CommandExecutor {
             return true;
         }
 
-        // Check cooldown (bug fix: this used to ignore ultimatewarps.bypass.cooldown entirely,
-        // unlike WarpCommand which checked it correctly)
         if (!player.hasPermission("ultimatewarps.bypass.cooldown")) {
             int remaining = plugin.getCooldownManager().getRemaining(player, "spawn");
             if (remaining > 0) {
@@ -63,17 +60,15 @@ public class SpawnCommand implements CommandExecutor {
         }
 
         int delay = plugin.getConfigManager().spawnDelay();
-        
-        // Apply rank multiplier
+
         if (!player.hasPermission("ultimatewarps.bypass.delay")) {
             delay = (int) (delay * plugin.getConfigManager().getRankMultiplier(player, "delay"));
         }
 
-        // Cancel any existing teleport task
         TeleportTask.cancelAllTasks(player);
 
         if (delay <= 0) {
-            // Instant teleport
+
             player.teleport(spawn);
             plugin.getEffectManager().playTeleportEffect(player, "Spawn");
             player.sendMessage(plugin.getConfigManager().getTeleportConfirmedMessage("Spawn"));
@@ -84,20 +79,15 @@ public class SpawnCommand implements CommandExecutor {
                 }
             }
         } else {
-            // Start countdown with TeleportTask
-            new TeleportTask(player, spawn, delay, "Spawn").runTaskTimer(plugin, 0L, 20L);
 
-            // Bug fix: the delayed path never set a cooldown after the teleport completed,
-            // so players could spam /spawn with the delay countdown and never actually get
-            // throttled. Schedule the cooldown to apply once the teleport finishes.
+            Runnable onSuccess = null;
             if (!player.hasPermission("ultimatewarps.bypass.cooldown")) {
                 int finalCooldown = (int) (plugin.getConfigManager().spawnCooldown() * plugin.getConfigManager().getRankMultiplier(player, "cooldown"));
                 if (finalCooldown > 0) {
-                    plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-                        plugin.getCooldownManager().setCooldown(player, "spawn", finalCooldown);
-                    }, delay * 20L);
+                    onSuccess = () -> plugin.getCooldownManager().setCooldown(player, "spawn", finalCooldown);
                 }
             }
+            new TeleportTask(player, spawn, delay, "Spawn", "Spawn", onSuccess).runTaskTimer(plugin, 0L, 20L);
         }
 
         return true;

@@ -4,7 +4,9 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.profile.PlayerProfile;
 import org.bukkit.profile.PlayerTextures;
@@ -44,9 +46,23 @@ public class HeadUtils {
         return head;
     }
 
-    // ---------------------------------------------------------------------------------
-    //  Your custom head textures
-    // ---------------------------------------------------------------------------------
+    public static ItemStack cleanIcon(ItemStack src) {
+        if (src == null) return null;
+        ItemStack clean = new ItemStack(src.getType());
+        ItemMeta meta = clean.getItemMeta();
+        if (meta == null) return clean;
+
+        if (src.getType() == Material.PLAYER_HEAD
+                && src.getItemMeta() instanceof SkullMeta srcSkull
+                && meta instanceof SkullMeta dstSkull) {
+            dstSkull.setOwnerProfile(srcSkull.getOwnerProfile());
+        }
+
+        meta.addItemFlags(ItemFlag.values());
+        clean.setItemMeta(meta);
+        return clean;
+    }
+
     public static final String WARP_ICON = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNDQxYTAyNTMwMDBjMmIyOGQzODY0MjZiZDM4YTRmMmQ3NmViY2RkMDdmNjc1ZTExYjNlNjgxNGM2YThhMmVhIn19fQ==";
     public static final String SPAWN_ICON = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMTJkN2E3NTFlYjA3MWUwOGRiYmM5NWJjNWQ5ZDY2ZTVmNTFkYzY3MTI2NDBhZDJkZmEwM2RlZmJiNjhhN2YzYSJ9fX0=";
     public static final String CREATE_ICON = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYjA1NmJjMTI0NGZjZmY5OTM0NGYxMmFiYTQyYWMyM2ZlZTZlZjZlMzM1MWQyN2QyNzNjMTU3MjUzMWYifX19";
@@ -60,4 +76,6 @@ public class HeadUtils {
     public static final String DELAY_ICON = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNmZlN2Q0NjMyMjQ3N2Q2MWQ0MWMxODc4OGY1YzFhZmQyNGVkNTI2ZWIzZWQ4NDEyN2YyMTJlMjUxNWIxODgzIn19fQ==";
     public static final String ENABLED_ICON = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYTk2Yzg3OWJkOWE3YzExMWZlYmQ0NTM4NGU3MjdhZjdjZDE2MGZjOGQ5YTZkMjlhNTFhYjU3NTRiNzlmMzJkZiJ9fX0=";
     public static final String PERMISSION_ICON = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYWMzYWFmMTEzN2U1NzgzY2UyNzE0MDJkMDE1YWM4MzUyOWUyYzNmNTNkOTFmNjlhYjYyOWY2YTk1NjVmZWU3OCJ9fX0=";
+    public static final String EFFECT_MODE_DEFAULT_ICON = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYjU0OTQwMDU3Y2NjYTMzMjE4MjRiMjAwNzJiODRhNzBjYmM1MDI5ZDU5YjI2YThmZTViMzUzNWNhN2U0YjAyYiJ9fX0=";
+    public static final String EFFECT_MODE_CUSTOM_ICON = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvOTQ3NGY3OWE3YjRmMDlkODg2N2M0YzYwYjcxYTU2ZDQxZDlhZGQ3OTNmOGI3Y2JiYTAzYzA0NTY1OTU2MGMxMiJ9fX0=";
 }

@@ -17,18 +17,6 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.UUID;
 
-/**
- * Countdown teleport task for player warps. Deliberately separate from the admin
- * TeleportTask class - that class is wired specifically to ConfigManager's spawn and warp
- * config branches, and player warps have their own independent settings in
- * playerwarps-config.yml, so there's only ever one settings source here (no
- * isSpawn-style branching needed).
- *
- * Shares the same active-task bookkeeping idea as the admin TeleportTask (registered in
- * a map on the plugin instance so it can be cancelled on disable/move), but keeps its own
- * separate map so a player warp countdown and an admin warp/spawn countdown can never be
- * confused with each other, and so cancelling one never accidentally cancels the other.
- */
 public class PlayerWarpTeleportTask extends BukkitRunnable {
 
     private static Map<UUID, PlayerWarpTeleportTask> activeTasks() {
@@ -45,7 +33,13 @@ public class PlayerWarpTeleportTask extends BukkitRunnable {
     private boolean cancelled = false;
     private final PlayerWarpsConfigManager config;
 
+    private final Runnable onSuccess;
+
     public PlayerWarpTeleportTask(Player player, Location destination, int delaySeconds, String displayLabel) {
+        this(player, destination, delaySeconds, displayLabel, null);
+    }
+
+    public PlayerWarpTeleportTask(Player player, Location destination, int delaySeconds, String displayLabel, Runnable onSuccess) {
         this.player = player;
         this.destination = destination;
         this.totalSeconds = Math.max(1, delaySeconds);
@@ -53,6 +47,7 @@ public class PlayerWarpTeleportTask extends BukkitRunnable {
         this.startLocation = player.getLocation().clone();
         this.displayLabel = displayLabel;
         this.config = UltimateWarps.getInstance().getPlayerWarpsConfigManager();
+        this.onSuccess = onSuccess;
 
         PlayerWarpTeleportTask existing = activeTasks().remove(player.getUniqueId());
         if (existing != null && !existing.cancelled) {
@@ -95,10 +90,6 @@ public class PlayerWarpTeleportTask extends BukkitRunnable {
 
         updateBossBar();
 
-        // Bug fix: title/subtitle used to be hardcoded plain Components ("Teleporting...",
-        // "%ds remaining") with no MiniMessage support and no way to configure them -
-        // unlike the admin warp title. Now reads from teleport.title.message/subtitle in
-        // playerwarps-config.yml, same as the admin TeleportTask does for warp.title.*.
         if (config.titleEnabled()) {
             Component title = config.getTitleMessage(displayLabel);
             Component subtitle = config.getSubtitleMessage(secondsLeft);
@@ -106,10 +97,6 @@ public class PlayerWarpTeleportTask extends BukkitRunnable {
                     Title.Times.times(Duration.ofMillis(0), Duration.ofMillis(1100), Duration.ofMillis(100))));
         }
 
-        // Bug fix: particle type/count/color used to be hardcoded to Particle.PORTAL with
-        // a fixed count of 10, ignoring whatever was configured. Now mirrors the admin
-        // TeleportTask.playParticleEffects() pattern: DUST uses the configured color/size,
-        // everything else just uses the configured type/count.
         if (config.particleEnabled()) {
             try {
                 Particle particleType = config.particleType();
@@ -122,12 +109,10 @@ public class PlayerWarpTeleportTask extends BukkitRunnable {
                             count, 0.5, 0.5, 0.5, 0.05);
                 }
             } catch (Exception ignored) {
-                // particle errors are never worth interrupting a teleport over
+
             }
         }
 
-        // Bug fix: sound used to be hardcoded to Sound.UI_BUTTON_CLICK at a fixed
-        // volume/pitch, ignoring whatever was configured.
         if (config.soundEnabled()) {
             player.playSound(player.getLocation(), config.soundType(), config.soundVolume(), config.soundPitch());
         }
@@ -141,7 +126,6 @@ public class PlayerWarpTeleportTask extends BukkitRunnable {
                startLocation.getBlockZ() != now.getBlockZ();
     }
 
-    /** Called by the move listener for instant cancellation, mirroring the admin TeleportTask's cancelIfMoved(). */
     public void cancelIfMoved() {
         if (cancelled) return;
         if (config.cancelOnMove() && hasMoved()) {
@@ -159,6 +143,10 @@ public class PlayerWarpTeleportTask extends BukkitRunnable {
         player.teleport(destination);
         player.playSound(player.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, 1.0f, 1.0f);
         player.sendMessage(config.getMessage("teleport-confirmed", "name", displayLabel));
+
+        if (onSuccess != null) {
+            onSuccess.run();
+        }
     }
 
     public void cancelTask(Component reason) {
@@ -184,8 +172,6 @@ public class PlayerWarpTeleportTask extends BukkitRunnable {
         }
     }
 
-    // Same Bukkit BarColor -> Adventure BossBar.Color mapping as the admin TeleportTask,
-    // duplicated here rather than shared so this class never needs to depend on it.
     private BossBar.Color convertColor(BarColor color) {
         switch (color) {
             case PINK: return BossBar.Color.PINK;
@@ -199,11 +185,6 @@ public class PlayerWarpTeleportTask extends BukkitRunnable {
         }
     }
 
-    // Bukkit BarStyle -> Adventure BossBar.Overlay. The admin TeleportTask never made
-    // this conversion (it always passes Overlay.PROGRESS regardless of the configured
-    // warp.bossbar.style), so a configured SEGMENTED_x style is silently ignored there -
-    // that's a separate, pre-existing gap left alone since it wasn't part of this request.
-    // Player warps get the full mapping here so teleport.bossbar.style actually works.
     private BossBar.Overlay convertStyle(BarStyle style) {
         switch (style) {
             case SEGMENTED_6: return BossBar.Overlay.NOTCHED_6;
