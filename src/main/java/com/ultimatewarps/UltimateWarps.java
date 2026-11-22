@@ -1,6 +1,24 @@
 package com.ultimatewarps;
 
-import com.ultimatewarps.commands.*;
+import java.io.File;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
+import org.bukkit.Bukkit;
+import org.bukkit.command.CommandSender;
+import org.bukkit.plugin.java.JavaPlugin;
+
+import com.ultimatewarps.commands.DelSpawnCommand;
+import com.ultimatewarps.commands.DelWarpCommand;
+import com.ultimatewarps.commands.SetSpawnCommand;
+import com.ultimatewarps.commands.SetWarpCommand;
+import com.ultimatewarps.commands.SpawnCommand;
+import com.ultimatewarps.commands.SpawnForceCommand;
+import com.ultimatewarps.commands.UltimateWarpsCommand;
+import com.ultimatewarps.commands.WarpCommand;
+import com.ultimatewarps.commands.WarpsAdminCommand;
 import com.ultimatewarps.gui.AdminGUI;
 import com.ultimatewarps.gui.WarpGUI;
 import com.ultimatewarps.listeners.ChatListener;
@@ -11,14 +29,10 @@ import com.ultimatewarps.playerwarps.PlayerWarpManager;
 import com.ultimatewarps.playerwarps.PlayerWarpTeleportTask;
 import com.ultimatewarps.playerwarps.PlayerWarpsConfigManager;
 import com.ultimatewarps.playerwarps.commands.PlayerWarpsCommand;
+import com.ultimatewarps.playerwarps.gui.PlayerWarpEditGUI;
 import com.ultimatewarps.playerwarps.gui.PlayerWarpGUI;
-import org.bukkit.Bukkit;
-import org.bukkit.plugin.java.JavaPlugin;
-
-import java.io.File;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import com.ultimatewarps.playerwarps.gui.PlayerWarpListGUI;
+import com.ultimatewarps.playerwarps.gui.PlayerWarpRateGUI;
 
 public final class UltimateWarps extends JavaPlugin {
 
@@ -65,11 +79,14 @@ public final class UltimateWarps extends JavaPlugin {
                 "§b                                                     /_/         \n\n" +
                 "§d =============================================================================="
         );
-        Bukkit.getConsoleSender().sendMessage(TextFormat.render("§dUltimateWarps v" + getDescription().getVersion() + " enabled!\n§aBy §1King_Le0_"));
+        Bukkit.getConsoleSender().sendMessage(TextFormat.render("§dUltimateWarps v" + getPluginMeta().getVersion() + " enabled!\n§aBy §1King_Le0_"));
     }
 
     @Override
     public void onDisable() {
+        closeAllGuis();
+        ChatInput.clearAll();
+
         if (warpManager != null) {
             warpManager.saveAllWarps();
         }
@@ -77,10 +94,10 @@ public final class UltimateWarps extends JavaPlugin {
             playerWarpManager.saveAll();
         }
 
-        new java.util.ArrayList<>(activeTeleports.values()).forEach(TeleportTask::cancel);
+        new ArrayList<>(activeTeleports.values()).forEach(TeleportTask::cancel);
         activeTeleports.clear();
 
-        new java.util.ArrayList<>(activePlayerWarpTeleports.values()).forEach(PlayerWarpTeleportTask::cancel);
+        new ArrayList<>(activePlayerWarpTeleports.values()).forEach(PlayerWarpTeleportTask::cancel);
         activePlayerWarpTeleports.clear();
 
         Bukkit.getConsoleSender().sendMessage(
@@ -95,6 +112,15 @@ public final class UltimateWarps extends JavaPlugin {
         );
         Bukkit.getConsoleSender().sendMessage("§cUltimateWarps disabled!");
         instance = null;
+    }
+
+    private void closeAllGuis() {
+        AdminGUI.closeAll();
+        WarpGUI.unregisterAll();
+        PlayerWarpGUI.unregisterAll();
+        PlayerWarpEditGUI.closeAll();
+        PlayerWarpListGUI.closeAll();
+        PlayerWarpRateGUI.closeAll();
     }
 
     private WarpCommand warpCommand;
@@ -133,6 +159,15 @@ public final class UltimateWarps extends JavaPlugin {
 
     public static UltimateWarps getInstance() {
         return instance;
+    }
+    public static boolean isAdmin(CommandSender sender) {
+        return sender != null && (sender.isOp() || sender.hasPermission("ultimatewarps.admin"));
+    }
+
+    public static boolean isPlayerWarpsAdmin(CommandSender sender) {
+        return sender != null && (sender.isOp()
+                || sender.hasPermission("ultimatewarps.playerwarps.admin")
+                || sender.hasPermission("ultimatewarps.admin"));
     }
 
     public ConfigManager getConfigManager() {
@@ -176,10 +211,14 @@ public final class UltimateWarps extends JavaPlugin {
     }
 
     public void reloadPlugin() {
-        WarpGUI.unregisterAll();
-        com.ultimatewarps.playerwarps.gui.PlayerWarpGUI.unregisterAll();
+        closeAllGuis();
+        ChatInput.clearAll();
 
-        reloadConfig();
+        new ArrayList<>(activeTeleports.values()).forEach(TeleportTask::cancel);
+        activeTeleports.clear();
+        new ArrayList<>(activePlayerWarpTeleports.values()).forEach(PlayerWarpTeleportTask::cancel);
+        activePlayerWarpTeleports.clear();
+
         configManager.reload();
         warpManager.loadWarps();
 

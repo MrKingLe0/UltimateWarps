@@ -1,12 +1,12 @@
 package com.ultimatewarps;
 
-import com.ultimatewarps.Warp;
 import org.bukkit.entity.Player;
 
 import java.io.File;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -37,19 +37,24 @@ public class WarpManager {
         for (File file : files) {
             Warp warp = Warp.load(file);
             if (warp != null) {
-                warps.put(warp.getName().toLowerCase(), warp);
+                warps.put(warp.getName().toLowerCase(Locale.ROOT), warp);
             }
         }
     }
 
     public void saveAllWarps() {
         for (Warp warp : warps.values()) {
-            warp.save();
+            try {
+                warp.save();
+            } catch (Exception e) {
+                plugin.getLogger().severe("Failed to save warp " + warp.getName() + ": " + e.getMessage());
+            }
         }
     }
 
     public Warp getWarp(String name) {
-        return warps.get(name.toLowerCase());
+        if (name == null) return null;
+        return warps.get(name.toLowerCase(Locale.ROOT));
     }
 
     public Collection<Warp> getAllWarps() {
@@ -71,11 +76,12 @@ public class WarpManager {
         }
         warp.setFile(new File(getWarpsFolder(), warp.getName() + ".yml"));
         warp.save();
-        warps.put(warp.getName().toLowerCase(), warp);
+        warps.put(warp.getName().toLowerCase(Locale.ROOT), warp);
     }
 
     public void removeWarp(String name) {
-        Warp warp = warps.remove(name.toLowerCase());
+        if (name == null) return;
+        Warp warp = warps.remove(name.toLowerCase(Locale.ROOT));
         if (warp != null) {
             warp.delete();
         }

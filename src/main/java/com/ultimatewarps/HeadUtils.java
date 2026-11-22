@@ -11,36 +11,47 @@ import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.profile.PlayerProfile;
 import org.bukkit.profile.PlayerTextures;
 
-import java.net.URL;
+import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class HeadUtils {
 
-    @SuppressWarnings("deprecation")
+    private static final Map<String, PlayerProfile> PROFILE_CACHE = new ConcurrentHashMap<>();
+
     public static ItemStack getHead(String base64) {
         ItemStack head = new ItemStack(Material.PLAYER_HEAD);
+        if (base64 == null || base64.isEmpty()) return head;
+
         SkullMeta meta = (SkullMeta) head.getItemMeta();
         if (meta == null) return head;
 
-        PlayerProfile profile = Bukkit.createPlayerProfile(UUID.randomUUID(), "customhead");
-        PlayerTextures textures = profile.getTextures();
-
-        try {
-            String decoded = new String(Base64.getDecoder().decode(base64));
-            JsonObject json = JsonParser.parseString(decoded).getAsJsonObject();
-            String skinUrl = json.getAsJsonObject("textures")
-                    .getAsJsonObject("SKIN")
-                    .get("url").getAsString();
-            textures.setSkin(new URL(skinUrl));
-        } catch (Exception e) {
-            UltimateWarps.getInstance().getLogger().warning(
-                "Invalid custom head texture – using default Steve head instead."
-            );
-            return head;
+        PlayerProfile profile = PROFILE_CACHE.get(base64);
+        if (profile == null) {
+            try {
+                String decoded = new String(Base64.getDecoder().decode(base64), StandardCharsets.UTF_8);
+                JsonObject json = JsonParser.parseString(decoded).getAsJsonObject();
+                String skinUrl = json.getAsJsonObject("textures")
+                        .getAsJsonObject("SKIN")
+                        .get("url").getAsString();
+                UUID deterministicId = UUID.nameUUIDFromBytes(base64.getBytes(StandardCharsets.UTF_8));
+                PlayerProfile created = Bukkit.createPlayerProfile(deterministicId, "uwhead");
+                PlayerTextures textures = created.getTextures();
+                textures.setSkin(URI.create(skinUrl).toURL());
+                created.setTextures(textures);
+                PROFILE_CACHE.put(base64, created);
+                profile = created;
+            } catch (Exception e) {
+                UltimateWarps.getInstance().getLogger().warning(
+                    "Invalid custom head texture – using default Steve head instead."
+                );
+                return head;
+            }
         }
 
-        profile.setTextures(textures);
         meta.setOwnerProfile(profile);
         head.setItemMeta(meta);
         return head;

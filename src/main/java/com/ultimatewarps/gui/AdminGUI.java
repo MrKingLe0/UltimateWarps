@@ -346,7 +346,12 @@ public class AdminGUI implements InventoryHolder {
                         return;
                     }
                     try {
-                        int cd = Integer.parseInt(input);
+                        int cd = Integer.parseInt(input.trim());
+                        if (cd < 0) {
+                            player.sendMessage(TextFormat.render("<#A98BFF>ɪɴᴠᴀʟɪᴅ ɴᴜᴍʙᴇʀ. ᴇɴᴛᴇʀ 0 ᴏʀ ᴍᴏʀᴇ ꜱᴇᴄᴏɴᴅꜱ."));
+                            openWarpEditMenu(warp);
+                            return;
+                        }
                         warp.setCooldown(cd);
                         warp.save();
                         player.sendMessage(config.getMessage("warp-edited", "name", warp.getName()));
@@ -364,7 +369,12 @@ public class AdminGUI implements InventoryHolder {
                         return;
                     }
                     try {
-                        int del = Integer.parseInt(input);
+                        int del = Integer.parseInt(input.trim());
+                        if (del < 0) {
+                            player.sendMessage(TextFormat.render("<#A98BFF>ɪɴᴠᴀʟɪᴅ ɴᴜᴍʙᴇʀ. ᴇɴᴛᴇʀ 0 ᴏʀ ᴍᴏʀᴇ ꜱᴇᴄᴏɴᴅꜱ."));
+                            openWarpEditMenu(warp);
+                            return;
+                        }
                         warp.setDelay(del);
                         warp.save();
                         player.sendMessage(config.getMessage("warp-edited", "name", warp.getName()));
@@ -537,7 +547,7 @@ public class AdminGUI implements InventoryHolder {
         ChatInput.waitForInput(player, 60, input -> {
             if (input.equalsIgnoreCase("cancel")) { openEffectsMenu(warp); return; }
             try {
-                Particle p = Particle.valueOf(input.trim().toUpperCase());
+                Particle p = Particle.valueOf(input.trim().toUpperCase(Locale.ROOT));
                 warp.setEffectParticleType(p.name());
                 warp.save();
                 player.sendMessage(config.getMessage("warp-edited", "name", warp.getName()));
@@ -590,7 +600,8 @@ public class AdminGUI implements InventoryHolder {
             if (s == null) {
                 player.sendMessage(TextFormat.render("<#A98BFF>ᴜɴᴋɴᴏᴡɴ ꜱᴏᴜɴᴅ: ").append(Component.text(input)));
             } else {
-                warp.setEffectSoundType(s.getKey().getKey());
+                String key = ConfigManager.soundKey(s);
+                if (key != null) warp.setEffectSoundType(key);
                 warp.save();
                 player.sendMessage(config.getMessage("warp-edited", "name", warp.getName()));
             }
@@ -711,7 +722,7 @@ public class AdminGUI implements InventoryHolder {
         putMenu(inv, MenuType.EFFECT_SOUND, warp, page);
 
         Sound cur = ConfigManager.parseSound(warp.getEffectSoundType(), null);
-        String currentKey = (cur != null) ? cur.getKey().getKey() : null;
+        String currentKey = ConfigManager.soundKey(cur);
 
         int start = page * PICKER_PER_PAGE;
         int end = Math.min(start + PICKER_PER_PAGE, sounds.size());
@@ -930,10 +941,8 @@ public class AdminGUI implements InventoryHolder {
 
     public void setIcon(Warp warp, ItemStack cursorItem) {
         if (cursorItem != null && cursorItem.getType() != Material.AIR) {
-
             warp.setIcon(HeadUtils.cleanIcon(cursorItem));
             warp.save();
-            player.setItemOnCursor(null);
             player.sendMessage(config.getMessage("warp-edited", "name", warp.getName()));
             openWarpEditMenu(warp);
         }
@@ -958,11 +967,11 @@ public class AdminGUI implements InventoryHolder {
         int invSize = inv.getSize();
         ItemStack topFiller = new ItemStack(config.topFillerMaterial());
         ItemMeta topMeta = topFiller.getItemMeta();
-        topMeta.setDisplayName(" ");
+        topMeta.displayName(Component.text(" "));
         topFiller.setItemMeta(topMeta);
         ItemStack middleFiller = new ItemStack(config.middleFillerMaterial());
         ItemMeta midMeta = middleFiller.getItemMeta();
-        midMeta.setDisplayName(" ");
+        midMeta.displayName(Component.text(" "));
         middleFiller.setItemMeta(midMeta);
         for (int i = 0; i < invSize; i++) {
             if (inv.getItem(i) != null) continue;
@@ -987,4 +996,13 @@ public class AdminGUI implements InventoryHolder {
     public static MenuState getMenu(Inventory inv) { return menuStates.get(inv); }
 
     public static void removeMenu(Inventory inv) { menuStates.remove(inv); }
+
+    public static void closeAll() {
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            if (p.getOpenInventory().getTopInventory().getHolder() instanceof AdminGUI) {
+                p.closeInventory();
+            }
+        }
+        menuStates.clear();
+    }
 }

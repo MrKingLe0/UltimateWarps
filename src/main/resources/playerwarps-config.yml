@@ -1,13 +1,7 @@
-# =====================================================================
-#  UltimateWarps - Player Warps Configuration
-#  This file is entirely separate from config.yml (admin warps) and
-#  warps-gui.yml (admin warp GUI layout). Player warps have their own
-#  storage folder (plugins/UltimateWarps/playerwarps/<uuid>/<name>.yml)
-#  and their own GUI layout file (playerwarps-gui.yml).
-# =====================================================================
+#  UltimateWarps - Player Warps Configuration (v4.1)
 
 # Master switch. If false, /playerwarps and the per-player limit/create
-# permissions all stop working - existing player warps are kept on disk
+# permissions all stop working - existing player warps are kept
 # but cannot be visited or edited until this is turned back on.
 enabled: true
 
@@ -18,9 +12,67 @@ enabled: true
 # ultimatewarps.playerwarps.limit.unlimited overrides everything.
 default-limit: 1
 
-# Teleport behavior for player warps - separate from the admin warp/spawn
-# settings in config.yml, so you can make player warps slower/costlier
-# than admin warps (or vice versa) without them interfering with each other.
+#  Feature Toggles & Settings
+#  Every new Player Warps feature can be toggled independently below.
+
+# 1. Safe Warp Place Detection
+# Checks 3 blocks around the warp position: solid block below and a
+# minimum of 2 blocks of air (at the warp position and one block up).
+# If unsafe, warp creation or teleportation is cancelled with a message.
+safe-warp:
+  enabled: true
+  check-on-create: true
+  check-on-teleport: true
+
+# 2. Warps Rating
+# Players can rate a warp (1-5 stars) from the GUI after visiting it.
+# After teleporting to a warp they haven't rated yet (and don't own),
+# they also receive a clickable chat prompt to open the rating GUI.
+# The rating is displayed on the first line of the warp lore.
+rating:
+  enabled: true
+  # Shown on the first line of warp lore when the warp has ratings.
+  # Placeholders: {stars}, {average}, {count}
+  rated-lore-format: "&7ʀᴀᴛɪɴɢ: &e{stars} &f({average}/5) &7({count})"
+  # Shown on the first line of warp lore when the warp has no ratings yet.
+  unrated-lore: "&7Not rated yet"
+
+# 3. Money Require (Teleport Cost)
+# Players with the permission below can enable a money requirement on
+# their warp and set a price via the Edit GUI or /playerwarps cost.
+# Server staff and the warp owner never pay to use the warp.
+# Note: PlaceholderAPI is only needed when this feature is enabled to
+# parse the visitor's balance via balance-placeholder.
+money-require:
+  enabled: true
+  permission: "ultimatewarps.playerwarps.money"
+  # PlaceholderAPI placeholder used to check the visitor's balance.
+  balance-placeholder: "%vault_eco_balance%"
+  # Commands executed by console when a visitor pays for a warp.
+  # Available placeholders: %warpowner%, %visitor%, %amount%
+  give-command: "/eco give %warpowner% %amount%"
+  take-command: "/eco take %visitor% %amount%"
+
+# 4. Whitelist & Blacklist
+# Warp owners can enable a whitelist (only whitelisted players can visit)
+# and manage whitelisted/blacklisted players via GUI or command.
+# Blacklist blocks blacklisted players even when whitelist is turned off.
+# Server staff and the warp owner cannot be whitelisted/blacklisted and
+# always bypass these restrictions.
+whitelist:
+  enabled: true
+
+blacklist:
+  enabled: true
+
+# 5. Favourite Warps
+# Adds a Favourite button in the PlayerWarps GUI so players can filter
+# and manage their favourite warps list.
+favourites:
+  enabled: true
+
+
+#  Teleport Settings
 teleport:
   cooldown: 30
   delay: 3
@@ -58,35 +110,12 @@ teleport:
 # These run at /playerwarps set time, not at teleport time - they control
 # WHERE a player is allowed to create a warp, not where they can visit one.
 location-requirements:
-  # Requires GriefPrevention to be installed. If true, a player can only
-  # set a player warp while standing inside a GriefPrevention claim that
-  # THEY own. If GriefPrevention isn't installed, this check is skipped
-  # entirely (treated as passed) rather than blocking everyone.
   require-own-claim: false
-
-  # Requires WorldGuard to be installed. If true, a player warp cannot be
-  # set while standing inside ANY WorldGuard region (regardless of who
-  # owns it). If WorldGuard isn't installed, this check is skipped.
   require-outside-worldguard-region: false
-
-  # If true, player warps can only be created in the overworld
-  # (environment NORMAL) - useful if you don't want player warps inside
-  # the Nether/End.
   overworld-only: false
-
-  # Minimum distance (blocks) a new player warp must be from world spawn.
-  # 0 disables this check.
   min-distance-from-spawn: 0
-
-  # Minimum distance (blocks) a new player warp must be from every other
-  # player's warps (in the same world). Helps prevent warp spam clustering
-  # in one area. 0 disables this check.
   min-distance-from-other-playerwarps: 0
 
-# Optional per-LuckPerms-group multipliers applied to teleport.cooldown
-# and teleport.delay above, same idea as config.yml's rank-multipliers.
-# A player with ultimatewarps.bypass.cooldown or ultimatewarps.bypass.delay
-# always gets a multiplier of 0 regardless of group.
 rank-multipliers:
   default:
     cooldown: 1.0
@@ -101,6 +130,7 @@ rank-multipliers:
 messages:
   no-permission: "<red>ʏᴏᴜ ᴅᴏɴ'ᴛ ʜᴀᴠᴇ ᴘᴇʀᴍɪssɪᴏɴ ᴛᴏ ᴅᴏ ᴛʜᴀᴛ.</red>"
   feature-disabled: "<red>ᴘʟᴀʏᴇʀ ᴡᴀʀᴘs ᴀʀᴇ ᴄᴜʀʀᴇɴᴛʟʏ ᴅɪsᴀʙʟᴇᴅ.</red>"
+  subfeature-disabled: "<red>ᴛʜɪs ꜰᴇᴀᴛᴜʀᴇ ɪs ᴄᴜʀʀᴇɴᴛʟʏ ᴅɪsᴀʙʟᴇᴅ.</red>"
   limit-reached: "<red>ʏᴏᴜ'ᴠᴇ ʀᴇᴀᴄʜᴇᴅ ʏᴏᴜʀ ᴘʟᴀʏᴇʀ ᴡᴀʀᴘ ʟɪᴍɪᴛ (%limit%). ᴅᴇʟᴇᴛᴇ ᴏɴᴇ ᴡɪᴛʜ /ᴘʟᴀʏᴇʀᴡᴀʀᴘs ᴅᴇʟ <ɴᴀᴍᴇ> ꜰɪʀsᴛ.</red>"
   warp-created: "<green>ᴘʟᴀʏᴇʀ ᴡᴀʀᴘ '%name%' ᴄʀᴇᴀᴛᴇᴅ!</green>"
   warp-deleted: "<green>ᴘʟᴀʏᴇʀ ᴡᴀʀᴘ '%name%' ᴅᴇʟᴇᴛᴇᴅ.</green>"
@@ -117,3 +147,38 @@ messages:
   teleport-confirmed: "<green>ᴛᴇʟᴇᴘᴏʀᴛᴇᴅ ᴛᴏ %name%!</green>"
   teleported-cancelled-move: "<red>ᴛᴇʟᴇᴘᴏʀᴛ ᴄᴀɴᴄᴇʟʟᴇᴅ - ʏᴏᴜ ᴍᴏᴠᴇᴅ!</red>"
   private-warp: "<red>ᴛʜᴀᴛ ᴡᴀʀᴘ ɪs ᴘʀɪᴠᴀᴛᴇ.</red>"
+
+  # Safe warp messages
+  unsafe-warp-create: "<red>ʏᴏᴜ ᴄᴀɴɴᴏᴛ ᴄʀᴇᴀᴛᴇ ᴀ ᴡᴀʀᴘ ʜᴇʀᴇ! ᴛʜᴇ ʟᴏᴄᴀᴛɪᴏɴ ɪs ᴜɴsᴀꜰᴇ (ɴᴇᴇᴅs sᴏʟɪᴅ ɢʀᴏᴜɴᴅ ʙᴇʟᴏᴡ ᴀɴᴅ 2 ʙʟᴏᴄᴋs ᴏꜰ ᴀɪʀ).</red>"
+  unsafe-warp-teleport: "<red>ᴛᴇʟᴇᴘᴏʀᴛ ᴄᴀɴᴄᴇʟʟᴇᴅ! ᴛʜᴇ ᴡᴀʀᴘ '%name%' ɪs ᴄᴜʀʀᴇɴᴛʟʏ ᴜɴsᴀꜰᴇ.</red>"
+
+  # Rating messages
+  rate-warp-prompt: "<yellow>⭐ ᴇɴᴊᴏʏɪɴɢ <white>%name%</white>? <click:run_command:'/playerwarps rate %owner% %warp%'><hover:show_text:'<green>ᴄʟɪᴄᴋ ᴛᴏ ʀᴀᴛᴇ %name%</green>'><aqua><b>[ᴄʟɪᴄᴋ ʜᴇʀᴇ ᴛᴏ ʀᴀᴛᴇ ᴛʜɪs ᴡᴀʀᴘ]</b></aqua></hover></click></yellow>"
+  warp-rated: "<green>ʏᴏᴜ ʀᴀᴛᴇᴅ '%name%' <yellow>%stars% ★</yellow>!</green>"
+  already-rated: "<red>ʏᴏᴜ ʜᴀᴠᴇ ᴀʟʀᴇᴀᴅʏ ʀᴀᴛᴇᴅ ᴛʜɪs ᴡᴀʀᴘ.</red>"
+  must-visit-to-rate: "<red>ʏᴏᴜ ᴍᴜsᴛ ᴠɪsɪᴛ ᴛʜɪs ᴡᴀʀᴘ ʙᴇꜰᴏʀᴇ ʏᴏᴜ ᴄᴀɴ ʀᴀᴛᴇ ɪᴛ.</red>"
+  cannot-rate-own-warp: "<red>ʏᴏᴜ ᴄᴀɴɴᴏᴛ ʀᴀᴛᴇ ʏᴏᴜʀ ᴏᴡɴ ᴡᴀʀᴘ.</red>"
+
+  # Money require messages
+  not-enough-money: "<red>ʏᴏᴜ ɴᴇᴇᴅ ᴀᴛ ʟᴇᴀsᴛ <yellow>$%amount%</yellow> ᴛᴏ ᴛᴇʟᴇᴘᴏʀᴛ ᴛᴏ ᴛʜɪs ᴡᴀʀᴘ!</red>"
+  money-paid: "<yellow>ʏᴏᴜ ᴘᴀɪᴅ <green>$%amount%</green> ᴛᴏ ᴠɪsɪᴛ <white>%name%</white>.</yellow>"
+  money-received: "<green>%visitor% ᴘᴀɪᴅ $%amount% ᴛᴏ ᴠɪsɪᴛ ʏᴏᴜʀ ᴡᴀʀᴘ '%name%'!</green>"
+  money-toggled: "<green>ᴍᴏɴᴇʏ ʀᴇǫᴜɪʀᴇᴍᴇɴᴛ ꜰᴏʀ '%name%' ɪs ɴᴏᴡ %status%.</green>"
+  money-cost-set: "<green>ᴛᴇʟᴇᴘᴏʀᴛ ᴄᴏsᴛ ꜰᴏʀ '%name%' sᴇᴛ ᴛᴏ <yellow>$%amount%</yellow>.</green>"
+  invalid-amount: "<red>ᴘʟᴇᴀsᴇ ᴇɴᴛᴇʀ ᴀ ᴠᴀʟɪᴅ ɴᴏɴ-ɴᴇɢᴀᴛɪᴠᴇ ɴᴜᴍʙᴇʀ.</red>"
+  papi-missing: "<red>ᴘʟᴀᴄᴇʜᴏʟᴅᴇʀᴀᴘɪ ɪs ʀᴇǫᴜɪʀᴇᴅ ᴛᴏ ᴄʜᴇᴄᴋ ᴘʟᴀʏᴇʀ ʙᴀʟᴀɴᴄᴇ ꜰᴏʀ ᴘᴀɪᴅ ᴡᴀʀᴘs.</red>"
+
+  # Whitelist & Blacklist messages
+  not-whitelisted: "<red>ʏᴏᴜ ᴀʀᴇ ɴᴏᴛ ᴡʜɪᴛᴇʟɪsᴛᴇᴅ ᴏɴ ᴛʜɪs ᴡᴀʀᴘ.</red>"
+  blacklisted-from-warp: "<red>ʏᴏᴜ ᴀʀᴇ ʙʟᴀᴄᴋʟɪsᴛᴇᴅ ꜰʀᴏᴍ ᴛʜɪs ᴡᴀʀᴘ.</red>"
+  whitelist-toggled: "<green>ᴡʜɪᴛᴇʟɪsᴛ ꜰᴏʀ '%name%' ɪs ɴᴏᴡ %status%.</green>"
+  whitelist-added: "<green>ᴀᴅᴅᴇᴅ <white>%player%</white> ᴛᴏ ᴛʜᴇ ᴡʜɪᴛᴇʟɪsᴛ ᴏꜰ '%name%'.</green>"
+  whitelist-removed: "<yellow>ʀᴇᴍᴏᴠᴇᴅ <white>%player%</white> ꜰʀᴏᴍ ᴛʜᴇ ᴡʜɪᴛᴇʟɪsᴛ ᴏꜰ '%name%'.</yellow>"
+  blacklist-added: "<green>ᴀᴅᴅᴇᴅ <white>%player%</white> ᴛᴏ ᴛʜᴇ ʙʟᴀᴄᴋʟɪsᴛ ᴏꜰ '%name%'.</green>"
+  blacklist-removed: "<yellow>ʀᴇᴍᴏᴠᴇᴅ <white>%player%</white> ꜰʀᴏᴍ ᴛʜᴇ ʙʟᴀᴄᴋʟɪsᴛ ᴏꜰ '%name%'.</yellow>"
+  cannot-list-self: "<red>ʏᴏᴜ ᴄᴀɴɴᴏᴛ ᴀᴅᴅ ʏᴏᴜʀsᴇʟꜰ ᴛᴏ ᴛʜᴇ ᴡʜɪᴛᴇʟɪsᴛ ᴏʀ ʙʟᴀᴄᴋʟɪsᴛ.</red>"
+  cannot-list-staff: "<red>ʏᴏᴜ ᴄᴀɴɴᴏᴛ ᴡʜɪᴛᴇʟɪsᴛ ᴏʀ ʙʟᴀᴄᴋʟɪsᴛ sᴇʀᴠᴇʀ sᴛᴀꜰꜰ.</red>"
+
+  # Favourites messages
+  favourite-added: "<green>ᴀᴅᴅᴇᴅ <white>%name%</white> ᴛᴏ ʏᴏᴜʀ ꜰᴀᴠᴏᴜʀɪᴛᴇ ᴡᴀʀᴘs!</green>"
+  favourite-removed: "<yellow>ʀᴇᴍᴏᴠᴇᴅ <white>%name%</white> ꜰʀᴏᴍ ʏᴏᴜʀ ꜰᴀᴠᴏᴜʀɪᴛᴇ ᴡᴀʀᴘs.</yellow>"

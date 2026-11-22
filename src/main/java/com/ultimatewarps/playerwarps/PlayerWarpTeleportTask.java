@@ -3,8 +3,8 @@ package com.ultimatewarps.playerwarps;
 import com.ultimatewarps.UltimateWarps;
 import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.title.Title;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
@@ -15,6 +15,7 @@ import org.bukkit.scheduler.BukkitRunnable;
 
 import java.time.Duration;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 
 public class PlayerWarpTeleportTask extends BukkitRunnable {
@@ -34,20 +35,26 @@ public class PlayerWarpTeleportTask extends BukkitRunnable {
     private final PlayerWarpsConfigManager config;
 
     private final Runnable onSuccess;
+    private final Runnable customArrivalHandler;
 
     public PlayerWarpTeleportTask(Player player, Location destination, int delaySeconds, String displayLabel) {
-        this(player, destination, delaySeconds, displayLabel, null);
+        this(player, destination, delaySeconds, displayLabel, null, null);
     }
 
     public PlayerWarpTeleportTask(Player player, Location destination, int delaySeconds, String displayLabel, Runnable onSuccess) {
+        this(player, destination, delaySeconds, displayLabel, onSuccess, null);
+    }
+
+    public PlayerWarpTeleportTask(Player player, Location destination, int delaySeconds, String displayLabel, Runnable onSuccess, Runnable customArrivalHandler) {
         this.player = player;
-        this.destination = destination;
+        this.destination = destination != null ? destination.clone() : null;
         this.totalSeconds = Math.max(1, delaySeconds);
         this.secondsLeft = this.totalSeconds;
         this.startLocation = player.getLocation().clone();
         this.displayLabel = displayLabel;
         this.config = UltimateWarps.getInstance().getPlayerWarpsConfigManager();
         this.onSuccess = onSuccess;
+        this.customArrivalHandler = customArrivalHandler;
 
         PlayerWarpTeleportTask existing = activeTasks().remove(player.getUniqueId());
         if (existing != null && !existing.cancelled) {
@@ -70,21 +77,26 @@ public class PlayerWarpTeleportTask extends BukkitRunnable {
     private void updateBossBar() {
         if (bossBar != null) {
             bossBar = bossBar.name(config.getBossBarText(displayLabel, secondsLeft));
-            bossBar = bossBar.progress((float) secondsLeft / totalSeconds);
+            float progress = Math.max(0.0f, Math.min(1.0f, (float) secondsLeft / totalSeconds));
+            bossBar = bossBar.progress(progress);
         }
     }
 
     @Override
     public void run() {
         if (cancelled) return;
+        if (!player.isOnline() || player.isDead()) {
+            cancelTask(null);
+            return;
+        }
 
         if (secondsLeft <= 0) {
             complete();
             return;
         }
 
-        if (config.cancelOnMove() && hasMoved()) {
-            cancelTask(Component.text("Teleport cancelled - you moved!", NamedTextColor.RED));
+        if (config.cancelOnMove() && hasMoved(player.getLocation())) {
+            cancelTask(config.getRawMessage("teleported-cancelled-move"));
             return;
         }
 
@@ -109,7 +121,6 @@ public class PlayerWarpTeleportTask extends BukkitRunnable {
                             count, 0.5, 0.5, 0.5, 0.05);
                 }
             } catch (Exception ignored) {
-
             }
         }
 
@@ -120,27 +131,50 @@ public class PlayerWarpTeleportTask extends BukkitRunnable {
         secondsLeft--;
     }
 
-    private boolean hasMoved() {
-        Location now = player.getLocation();
-        return startLocation.getBlockX() != now.getBlockX() ||
+    private boolean hasMoved(Location target) {
+        Location now = target != null ? target : player.getLocation();
+        return !Objects.equals(startLocation.getWorld(), now.getWorld()) ||
+               startLocation.getBlockX() != now.getBlockX() ||
+               startLocation.getBlockY() != now.getBlockY() ||
                startLocation.getBlockZ() != now.getBlockZ();
     }
 
     public void cancelIfMoved() {
+        cancelIfMoved(player.getLocation());
+    }
+
+    public void cancelIfMoved(Location to) {
         if (cancelled) return;
-        if (config.cancelOnMove() && hasMoved()) {
-            cancelTask(Component.text("Teleport cancelled - you moved!", NamedTextColor.RED));
+        if (config.cancelOnMove() && hasMoved(to)) {
+            cancelTask(config.getRawMessage("teleported-cancelled-move"));
         }
     }
 
     private void complete() {
         if (cancelled) return;
-        cancelled = true;
         cancel();
-        if (bossBar != null) bossBar.removeViewer(player);
-        activeTasks().remove(player.getUniqueId());
 
-        player.teleport(destination);
+        if (!player.isOnline() || player.isDead()) return;
+
+        if (customArrivalHandler != null) {
+            customArrivalHandler.run();
+            return;
+        }
+
+        if (destination == null || destination.getWorld() == null
+                || Bukkit.getWorld(destination.getWorld().getUID()) == null) {
+            player.sendMessage(config.getRawMessage("warp-not-found"));
+            return;
+        }
+
+        if (config.safeWarpCheckOnTeleport() && !SafeLocationChecker.isSafeLocation(destination)) {
+            player.sendMessage(config.getMessage("unsafe-warp-teleport", "name", displayLabel));
+            return;
+        }
+
+        if (!player.teleport(destination)) {
+            return;
+        }
         player.playSound(player.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, 1.0f, 1.0f);
         player.sendMessage(config.getMessage("teleport-confirmed", "name", displayLabel));
 
@@ -151,21 +185,22 @@ public class PlayerWarpTeleportTask extends BukkitRunnable {
 
     public void cancelTask(Component reason) {
         if (cancelled) return;
-        cancelled = true;
         cancel();
-        if (bossBar != null) bossBar.removeViewer(player);
-        activeTasks().remove(player.getUniqueId());
-        if (reason != null) player.sendMessage(reason);
+        if (reason != null && player.isOnline()) player.sendMessage(reason);
     }
 
     @Override
     public void cancel() {
-        super.cancel();
+        this.cancelled = true;
+        try {
+            super.cancel();
+        } catch (IllegalStateException ignored) {}
         if (bossBar != null) bossBar.removeViewer(player);
-        activeTasks().remove(player.getUniqueId());
+        activeTasks().remove(player.getUniqueId(), this);
     }
 
     public static void cancelAllTasks(Player player) {
+        if (player == null) return;
         PlayerWarpTeleportTask task = activeTasks().remove(player.getUniqueId());
         if (task != null && !task.cancelled) {
             task.cancel();

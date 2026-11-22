@@ -2,7 +2,7 @@ name: UltimateWarps
 version: ${version}
 main: com.ultimatewarps.UltimateWarps
 api-version: '1.21'
-softdepend: [LuckPerms]
+softdepend: [LuckPerms, PlaceholderAPI, WorldGuard, GriefPrevention, Vault]
 folia-supported: false
 author: King_Le0_
 description: Advanced warp and spawn management with GUIs and teleport effects.
@@ -19,9 +19,11 @@ commands:
   setspawn:
     description: Set the spawn location.
     usage: /setspawn
+    permission: ultimatewarps.admin
   delspawn:
     description: Delete the spawn location.
     usage: /delspawn
+    permission: ultimatewarps.admin
   warp:
     description: Open warp GUI or teleport to a warp.
     usage: /warp [name]
@@ -29,34 +31,31 @@ commands:
   setwarp:
     description: Create a new warp at your location.
     usage: /setwarp <name>
+    permission: ultimatewarps.admin
   delwarp:
     description: Delete a warp.
     usage: /delwarp <name>
+    permission: ultimatewarps.admin
   warpsadmin:
     description: Open the admin warp management GUI.
     usage: /warpsadmin
+    permission: ultimatewarps.admin
   ultimatewarps:
     description: Main plugin command.
     usage: /ultimatewarps <reload|spawn|warp|setwarp|delwarp|warpsadmin|setspawn|delspawn>
     aliases: [uwarps]
   playerwarps:
     description: Create, manage, and visit player-created warps.
-    usage: /playerwarps <gui|set|del|edit|list|warp|admin>
+    usage: /playerwarps <gui|set|del|edit|list|warp|rate|cost|whitelist|blacklist|favourite|admin>
     aliases: [pwarps]
 
 permissions:
-  ultimatewarps.admin:
-    description: Access to all admin commands.
-    default: op
   ultimatewarps.spawn:
     description: Access to /spawn.
     default: true
   ultimatewarps.warp.*:
     description: Access to all warps.
     default: op
-  ultimatewarps.warp.<name>:
-    description: Access to a specific warp.
-    default: true
   ultimatewarps.bypass.cooldown:
     description: Bypass warp cooldown.
     default: false
@@ -71,28 +70,23 @@ permissions:
     default: false
 
   # ===== Player Warps =====
-  # Browsing/visiting public player warps is on by default (same spirit as
-  # ultimatewarps.warp.* above), but CREATING one is opt-in (default: false) since a
-  # server owner upgrading the plugin likely doesn't want every existing player to
-  # suddenly be able to plant warps everywhere with no warning. Grant
-  # ultimatewarps.playerwarps.create to whichever group(s) should have it.
   ultimatewarps.playerwarps.create:
     description: Allows creating player warps with /playerwarps set.
     default: false
   ultimatewarps.playerwarps.browse:
     description: Allows opening the player warps browser GUI and visiting public player warps.
     default: true
+  ultimatewarps.playerwarps.money:
+    description: Allows enabling money requirement and setting a teleport cost on your player warps.
+    default: false
   ultimatewarps.playerwarps.admin:
-    description: Staff oversight - see/wipe any player's warps, teleport to any warp regardless of visibility, bypass the feature-disabled lock.
+    description: Staff oversight - see/wipe any player's warps, teleport to any warp regardless of visibility/cost/lists, bypass the feature-disabled lock.
     default: op
-  # Per-player warp limit nodes. The highest numbered node a player holds wins (they
-  # don't stack) - see playerwarps-config.yml's default-limit for the fallback when a
-  # player holds none of these.
   ultimatewarps.playerwarps.limit.1:
     description: Allows 1 player warp.
     default: false
   ultimatewarps.playerwarps.limit.3:
-    description: Allows 3 player warps.
+    description: Allows 3 player warp.
     default: false
   ultimatewarps.playerwarps.limit.5:
     description: Allows 5 player warps.

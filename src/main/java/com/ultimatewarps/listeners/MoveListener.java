@@ -12,25 +12,26 @@ import org.bukkit.event.player.PlayerMoveEvent;
 
 public class MoveListener implements Listener {
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     public void onMove(PlayerMoveEvent event) {
         if (!event.hasChangedPosition()) return;
         Player player = event.getPlayer();
 
         TeleportTask task = UltimateWarps.getInstance().getActiveTeleports().get(player.getUniqueId());
         if (task != null) {
-            task.cancelIfMoved();
+            task.cancelIfMoved(event.getTo());
         }
 
         PlayerWarpTeleportTask playerWarpTask = UltimateWarps.getInstance().getActivePlayerWarpTeleports().get(player.getUniqueId());
         if (playerWarpTask != null) {
-            playerWarpTask.cancelIfMoved();
+            playerWarpTask.cancelIfMoved(event.getTo());
         }
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onDamage(EntityDamageEvent event) {
         if (!(event.getEntity() instanceof Player player)) return;
+        if (event.getFinalDamage() <= 0.0) return;
         if (!UltimateWarps.getInstance().getConfigManager().shouldCancelOnDamage()) return;
 
         TeleportTask task = UltimateWarps.getInstance().getActiveTeleports().get(player.getUniqueId());

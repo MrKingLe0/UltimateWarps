@@ -38,6 +38,7 @@ public class ConfigManager {
     public void reload() {
         plugin.reloadConfig();
         this.config = plugin.getConfig();
+        spawnLocationManager.reload();
     }
 
     public Component parse(String message) {
@@ -76,7 +77,7 @@ public class ConfigManager {
 
     public BarColor spawnBossBarColor() {
         try {
-            return BarColor.valueOf(config.getString("spawn.bossbar.color", "PURPLE").toUpperCase());
+            return BarColor.valueOf(config.getString("spawn.bossbar.color", "PURPLE").toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException e) {
             return BarColor.PURPLE;
         }
@@ -84,7 +85,7 @@ public class ConfigManager {
 
     public BarStyle spawnBossBarStyle() {
         try {
-            return BarStyle.valueOf(config.getString("spawn.bossbar.style", "SOLID").toUpperCase());
+            return BarStyle.valueOf(config.getString("spawn.bossbar.style", "SOLID").toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException e) {
             return BarStyle.SOLID;
         }
@@ -96,7 +97,7 @@ public class ConfigManager {
 
     public Particle spawnParticleType() {
         try {
-            return Particle.valueOf(config.getString("spawn.particle.type", "PORTAL").toUpperCase());
+            return Particle.valueOf(config.getString("spawn.particle.type", "PORTAL").toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException e) {
             return Particle.PORTAL;
         }
@@ -177,7 +178,7 @@ public class ConfigManager {
 
     public BarColor warpBossBarColor() {
         try {
-            return BarColor.valueOf(config.getString("warp.bossbar.color", "BLUE").toUpperCase());
+            return BarColor.valueOf(config.getString("warp.bossbar.color", "BLUE").toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException e) {
             return BarColor.BLUE;
         }
@@ -185,7 +186,7 @@ public class ConfigManager {
 
     public BarStyle warpBossBarStyle() {
         try {
-            return BarStyle.valueOf(config.getString("warp.bossbar.style", "SOLID").toUpperCase());
+            return BarStyle.valueOf(config.getString("warp.bossbar.style", "SOLID").toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException e) {
             return BarStyle.SOLID;
         }
@@ -197,7 +198,7 @@ public class ConfigManager {
 
     public Particle warpParticleType() {
         try {
-            return Particle.valueOf(config.getString("warp.particle.type", "DUST").toUpperCase());
+            return Particle.valueOf(config.getString("warp.particle.type", "DUST").toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException e) {
 
             return Particle.DUST;
@@ -269,35 +270,49 @@ public class ConfigManager {
     private double getMultiplierForPlayer(Player player, String type) {
         if (player.hasPermission("ultimatewarps.bypass." + type)) return 0.0;
 
-        try {
-            LuckPerms luckPerms = LuckPermsProvider.get();
-            User user = luckPerms.getUserManager().getUser(player.getUniqueId());
-            if (user != null) {
-                Group bestGroup = null;
-                int bestWeight = Integer.MIN_VALUE;
+        ConfigurationSection section = config.getConfigurationSection("rank-multipliers");
+        if (section != null && Bukkit.getPluginManager().isPluginEnabled("LuckPerms")) {
+            try {
+                LuckPerms luckPerms = LuckPermsProvider.get();
+                User user = luckPerms.getUserManager().getUser(player.getUniqueId());
+                if (user != null) {
+                    String bestGroupName = null;
+                    int bestWeight = Integer.MIN_VALUE;
 
-                for (InheritanceNode node : user.getNodes(NodeType.INHERITANCE)) {
-                    String groupName = node.getGroupName();
-                    Group group = luckPerms.getGroupManager().getGroup(groupName);
-                    if (group != null) {
-                        int weight = group.getWeight().orElse(0);
+                    for (InheritanceNode node : user.getNodes(NodeType.INHERITANCE)) {
+                        if (!node.getValue() || node.hasExpired()) continue;
+                        String groupName = node.getGroupName().toLowerCase(Locale.ROOT);
+                        if (!section.contains(groupName)) continue;
+                        Group group = luckPerms.getGroupManager().getGroup(node.getGroupName());
+                        int weight = group != null ? group.getWeight().orElse(0) : 0;
                         if (weight > bestWeight) {
                             bestWeight = weight;
-                            bestGroup = group;
+                            bestGroupName = groupName;
                         }
                     }
-                }
 
-                if (bestGroup != null) {
-                    String groupName = bestGroup.getName().toLowerCase();
-                    ConfigurationSection section = config.getConfigurationSection("rank-multipliers");
-                    if (section != null && section.contains(groupName)) {
-                        return config.getDouble("rank-multipliers." + groupName + "." + type, 1.0);
+                    if (bestGroupName != null) {
+                        return config.getDouble("rank-multipliers." + bestGroupName + "." + type, 1.0);
+                    }
+                }
+            } catch (IllegalStateException | LinkageError ignored) {
+            }
+        }
+
+        if (section != null) {
+            double bestPermMult = Double.MAX_VALUE;
+            boolean matched = false;
+            for (String key : section.getKeys(false)) {
+                if (key.equalsIgnoreCase("default")) continue;
+                if (player.hasPermission("ultimatewarps.rank." + key.toLowerCase(Locale.ROOT))) {
+                    double m = config.getDouble("rank-multipliers." + key + "." + type, 1.0);
+                    if (m < bestPermMult) {
+                        bestPermMult = m;
+                        matched = true;
                     }
                 }
             }
-        } catch (IllegalStateException e) {
-
+            if (matched) return bestPermMult;
         }
 
         return config.getDouble("rank-multipliers.default." + type, 1.0);
@@ -317,7 +332,7 @@ public class ConfigManager {
 
     public Material topFillerMaterial() {
         try {
-            return Material.valueOf(config.getString("gui.top-filler-material", "MAGENTA_STAINED_GLASS_PANE").toUpperCase());
+            return Material.valueOf(config.getString("gui.top-filler-material", "MAGENTA_STAINED_GLASS_PANE").toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException e) {
             return Material.MAGENTA_STAINED_GLASS_PANE;
         }
@@ -325,7 +340,7 @@ public class ConfigManager {
 
     public Material middleFillerMaterial() {
         try {
-            return Material.valueOf(config.getString("gui.mid-filler-material", "BLACK_STAINED_GLASS_PANE").toUpperCase());
+            return Material.valueOf(config.getString("gui.mid-filler-material", "BLACK_STAINED_GLASS_PANE").toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException e) {
             return Material.BLACK_STAINED_GLASS_PANE;
         }
@@ -443,8 +458,9 @@ public class ConfigManager {
         Map<String, Sound> byKey = new HashMap<>();
         Map<String, Sound> byEnum = new HashMap<>();
         try {
-            for (Sound s : RegistryAccess.registryAccess().getRegistry(RegistryKey.SOUND_EVENT)) {
-                NamespacedKey nk = s.getKey();
+            Registry<Sound> reg = RegistryAccess.registryAccess().getRegistry(RegistryKey.SOUND_EVENT);
+            for (Sound s : reg) {
+                NamespacedKey nk = reg.getKey(s);
                 if (nk == null) continue;
                 String path = nk.getKey();
                 keys.add(path);
@@ -462,6 +478,16 @@ public class ConfigManager {
     public static List<String> allSoundKeys() {
         initSounds();
         return SOUND_KEYS;
+    }
+
+    public static String soundKey(Sound sound) {
+        if (sound == null) return null;
+        try {
+            NamespacedKey nk = RegistryAccess.registryAccess().getRegistry(RegistryKey.SOUND_EVENT).getKey(sound);
+            if (nk != null) return nk.getKey();
+        } catch (Exception ignored) {
+        }
+        return null;
     }
 
     public static Sound parseSound(String key, Sound fallback) {

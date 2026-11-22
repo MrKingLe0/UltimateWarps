@@ -1,5 +1,5 @@
 # =====================================================================
-#  UltimateWarps - Player Warps GUI Configuration
+#  UltimateWarps - Player Warps GUI Configuration (v4.0)
 #  Entirely separate from warps-gui.yml (the admin warp GUI). Customize
 #  every slot and button in the player-warps browser menu here.
 # =====================================================================
@@ -21,34 +21,43 @@ click-sound:
   pitch: 1.0
 
 # Item template for a player warp that ISN'T owned by the viewer.
+# {rating} is always displayed on the first line of the lore (shows "Not rated yet" if unrated).
 warp-item:
   material: "PLAYER_HEAD"
   name: "&b&l{warp_name}"
   lore:
+    - "{rating}"
     - ""
     - "&7ᴏᴡɴᴇʀ: &f{owner}"
+    - "&7ᴄᴏsᴛ: &a{cost}"
     - "&7ᴄᴏᴏʟᴅᴏᴡɴ: &e{cooldown}s"
     - "&7ᴅᴇʟᴀʏ: &e{delay}s"
+    - "&7ꜰᴀᴠᴏᴜʀɪᴛᴇ: {favourite_status}"
     - ""
-    - "&bᴄʟɪᴄᴋ ᴛᴏ ᴛᴇʟᴇᴘᴏʀᴛ"
+    - "&bʟᴇꜰᴛ-ᴄʟɪᴄᴋ ᴛᴏ ᴛᴇʟᴇᴘᴏʀᴛ"
+    - "&eʀɪɢʜᴛ-ᴄʟɪᴄᴋ ᴛᴏ ꜰᴀᴠᴏᴜʀɪᴛᴇ"
+    - "&6sʜɪꜰᴛ+ʀɪɢʜᴛ-ᴄʟɪᴄᴋ ᴛᴏ ʀᴀᴛᴇ"
   amount: 1
   enchanted: false
   head-texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNDQxYTAyNTMwMDBjMmIyOGQzODY0MjZiZDM4YTRmMmQ3NmViY2RkMDdmNjc1ZTExYjNlNjgxNGM2YThhMmVhIn19fQ=="
 
-# Item template for a player warp the viewer OWNS - shown with different
-# lore (no "owner" line, an edit hint instead) so it's visually obvious
-# which warps in the list are yours.
+# Item template for a player warp the viewer OWNS.
 own-warp-item:
   material: "PLAYER_HEAD"
   name: "&e&l{warp_name} &7(ʏᴏᴜʀs)"
   lore:
+    - "{rating}"
     - ""
+    - "&7ᴄᴏsᴛ: &a{cost}"
     - "&7ᴄᴏᴏʟᴅᴏᴡɴ: &e{cooldown}s"
     - "&7ᴅᴇʟᴀʏ: &e{delay}s"
     - "&7ᴠɪsɪʙɪʟɪᴛʏ: &f{visibility}"
+    - "&7ᴡʜɪᴛᴇʟɪsᴛ: &f{whitelist_status}"
+    - "&7ꜰᴀᴠᴏᴜʀɪᴛᴇ: {favourite_status}"
     - ""
-    - "&bᴄʟɪᴄᴋ ᴛᴏ ᴛᴇʟᴇᴘᴏʀᴛ"
-    - "&eꜱʜɪꜰᴛ+ᴄʟɪᴄᴋ ᴛᴏ ᴇᴅɪᴛ"
+    - "&bʟᴇꜰᴛ-ᴄʟɪᴄᴋ ᴛᴏ ᴛᴇʟᴇᴘᴏʀᴛ"
+    - "&eꜱʜɪꜰᴛ+ʟᴇꜰᴛ-ᴄʟɪᴄᴋ ᴛᴏ ᴇᴅɪᴛ"
+    - "&6ʀɪɢʜᴛ-ᴄʟɪᴄᴋ ᴛᴏ ꜰᴀᴠᴏᴜʀɪᴛᴇ"
   amount: 1
   enchanted: false
   head-texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNDQxYTAyNTMwMDBjMmIyOGQzODY0MjZiZDM4YTRmMmQ3NmViY2RkMDdmNjc1ZTExYjNlNjgxNGM2YThhMmVhIn19fQ=="
@@ -106,6 +115,20 @@ buttons:
       - "&7/ᴘʟᴀʏᴇʀᴡᴀʀᴘs sᴇᴛ <ɴᴀᴍᴇ>"
     amount: 1
 
+  # Favourite warps filter & hint button.
+  favourite:
+    enabled: true
+    slot: 48
+    material: "NETHER_STAR"
+    name: "&6&lꜰᴀᴠᴏᴜʀɪᴛᴇ: {favourite}"
+    lore:
+      - "&7ᴄʟɪᴄᴋ ᴛᴏ ᴠɪᴇᴡ ʏᴏᴜʀ"
+      - "&7ꜰᴀᴠᴏᴜʀɪᴛᴇ ᴡᴀʀᴘs ʟɪsᴛ"
+      - ""
+      - "&eʀɪɢʜᴛ-ᴄʟɪᴄᴋ ᴀɴʏ ᴡᴀʀᴘ ɪɴ ᴛʜᴇ"
+      - "&eɢᴜɪ ᴛᴏ ᴀᴅᴅ/ʀᴇᴍᴏᴠᴇ ꜰᴀᴠᴏᴜʀɪᴛᴇ"
+    amount: 1
+
   close:
     enabled: true
     slot: 49
@@ -139,7 +162,7 @@ custom-items:
 
   bottom-border:
     enabled: true
-    slots: [48, 50, 52]
+    slots: [50, 52]
     material: "CYAN_STAINED_GLASS_PANE"
     name: " "
     lore: []

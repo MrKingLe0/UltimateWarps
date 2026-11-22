@@ -13,9 +13,12 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
@@ -23,7 +26,7 @@ import java.io.File;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class WarpGUI implements Listener {
+public class WarpGUI implements Listener, InventoryHolder {
 
     private final UltimateWarps plugin;
     private final Player player;
@@ -82,16 +85,29 @@ public class WarpGUI implements Listener {
         );
     }
 
+    @Override
+    public Inventory getInventory() {
+        return gui;
+    }
+
     public void unregister() {
         org.bukkit.event.HandlerList.unregisterAll(this);
         activeInstances.remove(this);
+        if (player != null) {
+            OPEN_GUIS.remove(player.getUniqueId(), this);
+        }
     }
 
     public static void unregisterAll() {
         for (WarpGUI gui : new ArrayList<>(activeInstances)) {
             gui.unregister();
+            if (gui.player != null && gui.player.isOnline()
+                    && gui.player.getOpenInventory().getTopInventory().getHolder() == gui) {
+                gui.player.closeInventory();
+            }
         }
         activeInstances.clear();
+        OPEN_GUIS.clear();
     }
 
     private boolean isValidSlot(int slot) {
@@ -253,7 +269,7 @@ public class WarpGUI implements Listener {
         }
 
         if (section.getBoolean("enchanted", false)) {
-            meta.addEnchant(org.bukkit.enchantments.Enchantment.LURE, 1, true);
+            meta.setEnchantmentGlintOverride(true);
         }
 
         item.setItemMeta(meta);
@@ -270,16 +286,7 @@ public class WarpGUI implements Listener {
         lastSoundTime.put(uuid, now);
 
         String soundToPlay = customSound != null ? customSound : clickSound;
-        Sound sound = null;
-
-        try {
-            sound = org.bukkit.Registry.SOUNDS.get(org.bukkit.NamespacedKey.minecraft(soundToPlay.toLowerCase()));
-            if (sound == null) {
-                sound = Sound.UI_BUTTON_CLICK;
-            }
-        } catch (Exception e) {
-            sound = Sound.UI_BUTTON_CLICK;
-        }
+        Sound sound = com.ultimatewarps.ConfigManager.parseSound(soundToPlay, Sound.UI_BUTTON_CLICK);
 
         if (sound != null) {
             player.playSound(player.getLocation(), sound, clickSoundVolume, clickSoundPitch);
@@ -349,7 +356,7 @@ public class WarpGUI implements Listener {
 
     private void createGUI() {
         int size = rows * 9;
-        gui = Bukkit.createInventory(null, size, title);
+        gui = Bukkit.createInventory(this, size, title);
         occupiedWarpSlots.clear();
         slotToWarp.clear();
 
@@ -518,7 +525,7 @@ public class WarpGUI implements Listener {
         }
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onInventoryClick(InventoryClickEvent event) {
         if (!(event.getWhoClicked() instanceof Player))
             return;
@@ -526,15 +533,38 @@ public class WarpGUI implements Listener {
         if (!event.getWhoClicked().getUniqueId().equals(player.getUniqueId()))
             return;
 
-        if (!event.getInventory().equals(gui))
+        Inventory top = event.getView().getTopInventory();
+        if (top.getHolder() != this)
             return;
 
         event.setCancelled(true);
 
-        if (event.getRawSlot() < 0 || event.getRawSlot() >= gui.getSize())
+        int rawSlot = event.getRawSlot();
+        if (rawSlot < 0 || rawSlot >= top.getSize())
             return;
 
-        handleClick(event.getRawSlot());
+        if (!top.equals(gui))
+            return;
+
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            if (!player.isOnline()) return;
+            handleClick(rawSlot);
+        });
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onInventoryDrag(InventoryDragEvent event) {
+        if (!event.getWhoClicked().getUniqueId().equals(player.getUniqueId()))
+            return;
+        Inventory top = event.getView().getTopInventory();
+        if (top.getHolder() != this)
+            return;
+        for (int rawSlot : event.getRawSlots()) {
+            if (rawSlot < top.getSize()) {
+                event.setCancelled(true);
+                return;
+            }
+        }
     }
 
     @EventHandler

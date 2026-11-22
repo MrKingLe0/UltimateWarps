@@ -1,8 +1,8 @@
 package com.ultimatewarps;
 
 import org.bukkit.Location;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.entity.Player;
 
 import java.io.File;
 import java.util.HashMap;
@@ -23,6 +23,12 @@ public class SpawnLocationManager {
         loadSpawnData();
     }
 
+    public void reload() {
+        cachedLocation = null;
+        pendingSpawnTeleports.clear();
+        loadSpawnData();
+    }
+
     private void loadSpawnData() {
         if (!spawnDataFile.exists()) {
             spawnData = new YamlConfiguration();
@@ -31,15 +37,19 @@ public class SpawnLocationManager {
         spawnData = YamlConfiguration.loadConfiguration(spawnDataFile);
 
         if (spawnData.contains("spawn-location")) {
-            cachedLocation = (Location) spawnData.get("spawn-location");
+            Object raw = spawnData.get("spawn-location");
+            if (raw instanceof Location loc) {
+                cachedLocation = loc;
+            }
         }
 
-        if (spawnData.contains("pending-spawn-teleports")) {
-            for (String uuidStr : spawnData.getConfigurationSection("pending-spawn-teleports").getKeys(false)) {
+        ConfigurationSection pendingSection = spawnData.getConfigurationSection("pending-spawn-teleports");
+        if (pendingSection != null) {
+            for (String uuidStr : pendingSection.getKeys(false)) {
                 try {
                     UUID uuid = UUID.fromString(uuidStr);
-                    Location loc = (Location) spawnData.get("pending-spawn-teleports." + uuidStr);
-                    if (loc != null) {
+                    Object raw = spawnData.get("pending-spawn-teleports." + uuidStr);
+                    if (raw instanceof Location loc) {
                         pendingSpawnTeleports.put(uuid, loc);
                     }
                 } catch (IllegalArgumentException e) {
@@ -58,12 +68,12 @@ public class SpawnLocationManager {
     }
 
     public Location getLocation() {
-        return cachedLocation;
+        return cachedLocation != null ? cachedLocation.clone() : null;
     }
 
     public void setLocation(Location loc) {
-        this.cachedLocation = loc;
-        spawnData.set("spawn-location", loc);
+        this.cachedLocation = loc != null ? loc.clone() : null;
+        spawnData.set("spawn-location", this.cachedLocation);
         saveSpawnData();
     }
 
@@ -74,16 +84,19 @@ public class SpawnLocationManager {
     }
 
     public void setPendingSpawnTeleport(UUID playerId, Location spawn) {
-        pendingSpawnTeleports.put(playerId, spawn);
-        spawnData.set("pending-spawn-teleports." + playerId.toString(), spawn);
+        Location copy = spawn != null ? spawn.clone() : null;
+        pendingSpawnTeleports.put(playerId, copy);
+        spawnData.set("pending-spawn-teleports." + playerId.toString(), copy);
         saveSpawnData();
     }
 
     public Location getPendingSpawnTeleport(UUID playerId) {
         Location loc = pendingSpawnTeleports.remove(playerId);
-        spawnData.set("pending-spawn-teleports." + playerId.toString(), null);
-        saveSpawnData();
-        return loc;
+        if (loc != null || spawnData.contains("pending-spawn-teleports." + playerId.toString())) {
+            spawnData.set("pending-spawn-teleports." + playerId.toString(), null);
+            saveSpawnData();
+        }
+        return loc != null ? loc.clone() : null;
     }
 
     public boolean hasPendingSpawnTeleport(UUID playerId) {
@@ -91,9 +104,11 @@ public class SpawnLocationManager {
     }
 
     public void removePendingSpawnTeleport(UUID playerId) {
-        pendingSpawnTeleports.remove(playerId);
-        spawnData.set("pending-spawn-teleports." + playerId.toString(), null);
-        saveSpawnData();
+        boolean removed = pendingSpawnTeleports.remove(playerId) != null;
+        if (removed || spawnData.contains("pending-spawn-teleports." + playerId.toString())) {
+            spawnData.set("pending-spawn-teleports." + playerId.toString(), null);
+            saveSpawnData();
+        }
     }
 
     public boolean hasJoinedBefore(UUID playerId) {
@@ -101,6 +116,7 @@ public class SpawnLocationManager {
     }
 
     public void setJoinedBefore(UUID playerId) {
+        if (hasJoinedBefore(playerId)) return;
         spawnData.set("joined-before." + playerId.toString(), true);
         saveSpawnData();
     }

@@ -1,14 +1,21 @@
 package com.ultimatewarps.listeners;
 
+import com.ultimatewarps.ChatInput;
+import com.ultimatewarps.SpawnLocationManager;
+import com.ultimatewarps.TeleportTask;
 import com.ultimatewarps.TextFormat;
 import com.ultimatewarps.UltimateWarps;
-import com.ultimatewarps.SpawnLocationManager;
+import com.ultimatewarps.playerwarps.PlayerWarp;
+import com.ultimatewarps.playerwarps.PlayerWarpTeleportTask;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+
+import java.util.UUID;
 
 public class JoinListener implements Listener {
 
@@ -20,7 +27,11 @@ public class JoinListener implements Listener {
 
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
-        java.util.UUID uuid = event.getPlayer().getUniqueId();
+        Player player = event.getPlayer();
+        UUID uuid = player.getUniqueId();
+        TeleportTask.cancelAllTasks(player);
+        PlayerWarpTeleportTask.cancelAllTasks(player);
+        ChatInput.cancel(player);
         if (plugin.getWarpCommand() != null) {
             plugin.getWarpCommand().clearPlayer(uuid);
         }
@@ -32,42 +43,70 @@ public class JoinListener implements Listener {
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
-        SpawnLocationManager spawnManager = plugin.getConfigManager().getSpawnLocationManager();
-        Location spawn = plugin.getConfigManager().getSpawnLocation();
+        UUID uuid = player.getUniqueId();
 
-        if (spawn == null) return;
-
-        if (spawnManager.hasPendingSpawnTeleport(player.getUniqueId())) {
-            Location pendingSpawn = spawnManager.getPendingSpawnTeleport(player.getUniqueId());
-            if (pendingSpawn != null) {
-                player.teleport(pendingSpawn);
-                plugin.getEffectManager().playTeleportEffect(player, "Spawn");
-
-                String template = plugin.getConfigManager().getRawMessage("teleportation-confirmed");
-                player.sendMessage(TextFormat.renderTemplate(template, "%warp%", "Spawn"));
+        // Sync stored ownerName on PlayerWarps if the player renamed their Minecraft account
+        if (plugin.getPlayerWarpManager() != null) {
+            for (PlayerWarp pw : plugin.getPlayerWarpManager().getWarpsByOwner(uuid)) {
+                if (pw.getOwnerName() == null || !pw.getOwnerName().equals(player.getName())) {
+                    pw.setOwnerName(player.getName());
+                    pw.save();
+                }
             }
-            spawnManager.setJoinedBefore(player.getUniqueId());
+        }
+
+        SpawnLocationManager spawnManager = plugin.getConfigManager().getSpawnLocationManager();
+
+        if (spawnManager.hasPendingSpawnTeleport(uuid)) {
+            Location pendingSpawn = spawnManager.getPendingSpawnTeleport(uuid);
+            if (pendingSpawn != null && pendingSpawn.getWorld() != null) {
+                Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                    if (!player.isOnline() || pendingSpawn.getWorld() == null) return;
+                    if (player.teleport(pendingSpawn)) {
+                        plugin.getEffectManager().playTeleportEffect(player, "Spawn");
+                        String template = plugin.getConfigManager().getRawMessage("teleportation-confirmed");
+                        player.sendMessage(TextFormat.renderTemplate(template, "%warp%", "Spawn"));
+                    }
+                }, 1L);
+            }
+            spawnManager.setJoinedBefore(uuid);
             return;
         }
 
-        boolean isFirstJoin = !spawnManager.hasJoinedBefore(player.getUniqueId());
+        Location spawn = plugin.getConfigManager().getSpawnLocation();
+        if (spawn == null || spawn.getWorld() == null) {
+            if (!spawnManager.hasJoinedBefore(uuid)) {
+                spawnManager.setJoinedBefore(uuid);
+            }
+            return;
+        }
+
+        boolean isFirstJoin = !spawnManager.hasJoinedBefore(uuid);
 
         if (isFirstJoin && plugin.getConfigManager().spawnTeleportOnFirstJoin()) {
-            player.teleport(spawn);
             String message = plugin.getConfigManager().getSpawnTeleportOnFirstJoinMessage();
-            player.sendMessage(TextFormat.render(message));
-            spawnManager.setJoinedBefore(player.getUniqueId());
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                if (!player.isOnline() || spawn.getWorld() == null) return;
+                if (player.teleport(spawn)) {
+                    player.sendMessage(TextFormat.render(message));
+                }
+            }, 1L);
+            spawnManager.setJoinedBefore(uuid);
             return;
         }
 
-        if (!isFirstJoin && plugin.getConfigManager().spawnTeleportOnEveryJoin()) {
-            player.teleport(spawn);
+        if (plugin.getConfigManager().spawnTeleportOnEveryJoin()) {
             String message = plugin.getConfigManager().getSpawnTeleportOnEveryJoinMessage();
-            player.sendMessage(TextFormat.render(message));
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                if (!player.isOnline() || spawn.getWorld() == null) return;
+                if (player.teleport(spawn)) {
+                    player.sendMessage(TextFormat.render(message));
+                }
+            }, 1L);
         }
 
-        if (!spawnManager.hasJoinedBefore(player.getUniqueId())) {
-            spawnManager.setJoinedBefore(player.getUniqueId());
+        if (isFirstJoin) {
+            spawnManager.setJoinedBefore(uuid);
         }
     }
 }

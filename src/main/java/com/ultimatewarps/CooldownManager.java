@@ -33,8 +33,9 @@ public class CooldownManager {
         Long expiry = playerCooldowns.get(key);
         if (expiry == null) return 0;
 
-        long remaining = (expiry - System.currentTimeMillis()) / 1000;
-        return (int) Math.max(0, remaining);
+        long diff = expiry - System.currentTimeMillis();
+        if (diff <= 0) return 0;
+        return (int) ((diff + 999L) / 1000L);
     }
 
     public void applyCooldown(Player player, String key, int seconds) {

@@ -2,7 +2,8 @@ package com.ultimatewarps.commands;
 
 import com.ultimatewarps.TeleportTask;
 import com.ultimatewarps.UltimateWarps;
-import net.kyori.adventure.text.Component;
+import com.ultimatewarps.playerwarps.PlayerWarpTeleportTask;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -33,6 +34,11 @@ public class SpawnCommand implements CommandExecutor {
             return true;
         }
 
+        if (!player.hasPermission("ultimatewarps.spawn")) {
+            player.sendMessage(plugin.getConfigManager().getNoPermissionMessage());
+            return true;
+        }
+
         long lastExec = commandCooldown.getOrDefault(player.getUniqueId(), 0L);
         long now = System.currentTimeMillis();
         if (now - lastExec < 1000) {
@@ -46,7 +52,7 @@ public class SpawnCommand implements CommandExecutor {
         }
 
         Location spawn = plugin.getConfigManager().getSpawnLocation();
-        if (spawn == null) {
+        if (spawn == null || spawn.getWorld() == null || Bukkit.getWorld(spawn.getWorld().getUID()) == null) {
             player.sendMessage(plugin.getConfigManager().getSpawnNotSetMessage());
             return true;
         }
@@ -63,13 +69,17 @@ public class SpawnCommand implements CommandExecutor {
 
         if (!player.hasPermission("ultimatewarps.bypass.delay")) {
             delay = (int) (delay * plugin.getConfigManager().getRankMultiplier(player, "delay"));
+        } else {
+            delay = 0;
         }
 
         TeleportTask.cancelAllTasks(player);
+        PlayerWarpTeleportTask.cancelAllTasks(player);
 
         if (delay <= 0) {
-
-            player.teleport(spawn);
+            if (!player.teleport(spawn)) {
+                return true;
+            }
             plugin.getEffectManager().playTeleportEffect(player, "Spawn");
             player.sendMessage(plugin.getConfigManager().getTeleportConfirmedMessage("Spawn"));
             if (!player.hasPermission("ultimatewarps.bypass.cooldown")) {
@@ -79,7 +89,6 @@ public class SpawnCommand implements CommandExecutor {
                 }
             }
         } else {
-
             Runnable onSuccess = null;
             if (!player.hasPermission("ultimatewarps.bypass.cooldown")) {
                 int finalCooldown = (int) (plugin.getConfigManager().spawnCooldown() * plugin.getConfigManager().getRankMultiplier(player, "cooldown"));

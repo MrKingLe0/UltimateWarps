@@ -5,14 +5,18 @@ import net.kyori.adventure.bossbar.BossBar.Color;
 import net.kyori.adventure.bossbar.BossBar.Overlay;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.title.Title;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
+import org.bukkit.boss.BarStyle;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.time.Duration;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 
 public class TeleportTask extends BukkitRunnable {
@@ -28,13 +32,10 @@ public class TeleportTask extends BukkitRunnable {
     private final Location startLocation;
     private BossBar bossBar;
     private final String warpName;
-
     private final String displayLabel;
     private boolean cancelled = false;
     private final ConfigManager config;
-
     private final Runnable onSuccess;
-
     private final Warp sourceWarp;
 
     public TeleportTask(Player player, Location destination, int delaySeconds, String warpName) {
@@ -51,8 +52,8 @@ public class TeleportTask extends BukkitRunnable {
 
     public TeleportTask(Player player, Location destination, int delaySeconds, String warpName, String displayLabel, Runnable onSuccess, Warp sourceWarp) {
         this.player = player;
-        this.destination = destination;
-        this.totalSeconds = delaySeconds;
+        this.destination = destination != null ? destination.clone() : null;
+        this.totalSeconds = Math.max(1, delaySeconds);
         this.secondsLeft = delaySeconds;
         this.startLocation = player.getLocation().clone();
         this.warpName = warpName;
@@ -70,8 +71,12 @@ public class TeleportTask extends BukkitRunnable {
         createBossBar();
     }
 
+    private boolean isSpawnTeleport() {
+        return sourceWarp == null && "Spawn".equals(warpName);
+    }
+
     private void createBossBar() {
-        boolean isSpawn = warpName.equals("Spawn");
+        boolean isSpawn = isSpawnTeleport();
         boolean bossBarEnabled = isSpawn ? config.spawnBossBarEnabled() : config.warpBossBarEnabled();
 
         if (bossBarEnabled) {
@@ -80,7 +85,7 @@ public class TeleportTask extends BukkitRunnable {
                 config.getWarpBossBarText(displayLabel, secondsLeft);
 
             Color color = convertColor(isSpawn ? config.spawnBossBarColor() : config.warpBossBarColor());
-            Overlay overlay = Overlay.PROGRESS;
+            Overlay overlay = convertStyle(isSpawn ? config.spawnBossBarStyle() : config.warpBossBarStyle());
 
             this.bossBar = BossBar.bossBar(bossBarText, 1.0f, color, overlay);
             this.bossBar.addViewer(player);
@@ -89,29 +94,34 @@ public class TeleportTask extends BukkitRunnable {
 
     private void updateBossBar() {
         if (bossBar != null) {
-            boolean isSpawn = warpName.equals("Spawn");
+            boolean isSpawn = isSpawnTeleport();
             Component bossBarText = isSpawn ?
                 config.getSpawnBossBarText(secondsLeft) :
                 config.getWarpBossBarText(displayLabel, secondsLeft);
 
             bossBar = bossBar.name(bossBarText);
-            bossBar = bossBar.progress((float) secondsLeft / totalSeconds);
+            float progress = Math.max(0.0f, Math.min(1.0f, (float) secondsLeft / totalSeconds));
+            bossBar = bossBar.progress(progress);
         }
     }
 
     @Override
     public void run() {
         if (cancelled) return;
+        if (!player.isOnline() || player.isDead()) {
+            cancelTask(null);
+            return;
+        }
 
         if (secondsLeft <= 0) {
             complete();
             return;
         }
 
-        boolean isSpawn = warpName.equals("Spawn");
+        boolean isSpawn = isSpawnTeleport();
 
         if (isSpawn ? config.spawnCancelOnMove() : config.warpCancelOnMove()) {
-            if (hasMoved()) {
+            if (hasMoved(player.getLocation())) {
                 cancelTask(config.getTeleportCancelledMoveMessage());
                 return;
             }
@@ -152,30 +162,36 @@ public class TeleportTask extends BukkitRunnable {
         secondsLeft--;
     }
 
-    private boolean hasMoved() {
-        Location now = player.getLocation();
-        return startLocation.getBlockX() != now.getBlockX() ||
+    private boolean hasMoved(Location target) {
+        Location now = target != null ? target : player.getLocation();
+        return !Objects.equals(startLocation.getWorld(), now.getWorld()) ||
+               startLocation.getBlockX() != now.getBlockX() ||
+               startLocation.getBlockY() != now.getBlockY() ||
                startLocation.getBlockZ() != now.getBlockZ();
     }
 
     public void cancelIfMoved() {
+        cancelIfMoved(player.getLocation());
+    }
+
+    public void cancelIfMoved(Location to) {
         if (cancelled) return;
-        boolean isSpawn = warpName.equals("Spawn");
+        boolean isSpawn = isSpawnTeleport();
         boolean cancelOnMove = isSpawn ? config.spawnCancelOnMove() : config.warpCancelOnMove();
-        if (cancelOnMove && hasMoved()) {
+        if (cancelOnMove && hasMoved(to)) {
             cancelTask(config.getTeleportCancelledMoveMessage());
         }
     }
 
     private void playParticleEffects() {
         try {
-            boolean isSpawn = warpName.equals("Spawn");
+            boolean isSpawn = isSpawnTeleport();
 
             if (!isSpawn && sourceWarp != null && sourceWarp.isCustomEffects()) {
                 if (sourceWarp.isEffectParticleEnabled()) {
                     Particle particleType;
                     try {
-                        particleType = Particle.valueOf(sourceWarp.getEffectParticleType().toUpperCase());
+                        particleType = Particle.valueOf(sourceWarp.getEffectParticleType().toUpperCase(Locale.ROOT));
                     } catch (IllegalArgumentException e) {
                         particleType = Particle.DUST;
                     }
@@ -213,22 +229,24 @@ public class TeleportTask extends BukkitRunnable {
                         particleCount, 0.5, 0.5, 0.5, 0.05);
                 }
             }
-        } catch (Exception e) {
-
+        } catch (Exception ignored) {
         }
     }
 
     private void complete() {
         if (cancelled) return;
-        cancelled = true;
-
         cancel();
-        if (bossBar != null) {
-            bossBar.removeViewer(player);
-        }
-        activeTasks().remove(player.getUniqueId());
 
-        player.teleport(destination);
+        if (!player.isOnline() || player.isDead()) return;
+        if (destination == null || destination.getWorld() == null
+                || Bukkit.getWorld(destination.getWorld().getUID()) == null) {
+            player.sendMessage(config.getWarpNotFoundMessage());
+            return;
+        }
+
+        if (!player.teleport(destination)) {
+            return;
+        }
 
         UltimateWarps.getInstance().getEffectManager().playTeleportEffect(player, warpName, sourceWarp);
 
@@ -242,29 +260,27 @@ public class TeleportTask extends BukkitRunnable {
 
     public void cancelTask(Component reason) {
         if (cancelled) return;
-        cancelled = true;
-
         cancel();
-        if (bossBar != null) {
-            bossBar.removeViewer(player);
-        }
-        activeTasks().remove(player.getUniqueId());
 
-        if (reason != null) {
+        if (reason != null && player.isOnline()) {
             player.sendMessage(reason);
         }
     }
 
     @Override
     public void cancel() {
-        super.cancel();
+        this.cancelled = true;
+        try {
+            super.cancel();
+        } catch (IllegalStateException ignored) {}
         if (bossBar != null) {
             bossBar.removeViewer(player);
         }
-        activeTasks().remove(player.getUniqueId());
+        activeTasks().remove(player.getUniqueId(), this);
     }
 
     public static void cancelAllTasks(Player player) {
+        if (player == null) return;
         TeleportTask task = activeTasks().remove(player.getUniqueId());
         if (task != null && !task.cancelled) {
             task.cancel();
@@ -281,6 +297,17 @@ public class TeleportTask extends BukkitRunnable {
             case PURPLE: return Color.PURPLE;
             case WHITE: return Color.WHITE;
             default: return Color.BLUE;
+        }
+    }
+
+    private Overlay convertStyle(BarStyle style) {
+        if (style == null) return Overlay.PROGRESS;
+        switch (style) {
+            case SEGMENTED_6: return Overlay.NOTCHED_6;
+            case SEGMENTED_10: return Overlay.NOTCHED_10;
+            case SEGMENTED_12: return Overlay.NOTCHED_12;
+            case SEGMENTED_20: return Overlay.NOTCHED_20;
+            default: return Overlay.PROGRESS;
         }
     }
 }

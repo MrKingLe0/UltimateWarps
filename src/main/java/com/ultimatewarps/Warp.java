@@ -15,6 +15,7 @@ public class Warp {
 
     private final String name;
     private Location location;
+    private String worldName;
     private boolean enabled = true;
     private int cooldown = 0;
     private int delay = 0;
@@ -44,6 +45,7 @@ public class Warp {
     public Warp(String name, Location location) {
         this.name = name;
         this.location = location.clone();
+        this.worldName = location.getWorld() != null ? location.getWorld().getName() : null;
     }
 
     public String getName() { return name; }
@@ -59,7 +61,7 @@ public class Warp {
     public void setCooldown(int cooldown) { this.cooldown = cooldown; }
     public void setDelay(int delay) { this.delay = delay; }
     public void setPermission(String permission) { this.permission = permission; }
-    public void setLocation(Location location) { this.location = location.clone(); }
+    public void setLocation(Location location) { this.location = location.clone(); this.worldName = location.getWorld() != null ? location.getWorld().getName() : this.worldName; }
     public void setIcon(ItemStack icon) { this.icon = icon != null ? icon.clone() : null; }
     public void setDisplayName(String displayName) { this.displayName = displayName; }
     public void setFile(File file) { this.file = file; }
@@ -111,7 +113,12 @@ public class Warp {
             file = new File(UltimateWarps.getInstance().getWarpManager().getWarpsFolder(), name + ".yml");
         }
         YamlConfiguration yml = new YamlConfiguration();
-        yml.set("location.world", location.getWorld().getName());
+        String wName = (location != null && location.getWorld() != null) ? location.getWorld().getName() : worldName;
+        if (wName == null) {
+            UltimateWarps.getInstance().getLogger().warning("Skipping save for warp " + name + " (world is null).");
+            return;
+        }
+        yml.set("location.world", wName);
         yml.set("location.x", location.getX());
         yml.set("location.y", location.getY());
         yml.set("location.z", location.getZ());

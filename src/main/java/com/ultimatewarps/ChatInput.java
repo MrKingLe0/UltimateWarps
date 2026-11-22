@@ -6,6 +6,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -24,7 +25,8 @@ public class ChatInput {
         BukkitRunnable task = new BukkitRunnable() {
             @Override
             public void run() {
-                if (pending.remove(uuid) != null) {
+                timeouts.remove(uuid, this);
+                if (pending.remove(uuid) != null && player.isOnline()) {
                     player.sendMessage(Component.text("Input timed out.", NamedTextColor.RED));
                 }
             }
@@ -34,10 +36,25 @@ public class ChatInput {
     }
 
     public static void cancel(Player player) {
+        if (player == null) return;
         UUID uuid = player.getUniqueId();
         pending.remove(uuid);
         BukkitRunnable task = timeouts.remove(uuid);
-        if (task != null) task.cancel();
+        if (task != null) {
+            try {
+                task.cancel();
+            } catch (IllegalStateException ignored) {}
+        }
+    }
+
+    public static void clearAll() {
+        pending.clear();
+        for (BukkitRunnable task : new ArrayList<>(timeouts.values())) {
+            try {
+                task.cancel();
+            } catch (IllegalStateException ignored) {}
+        }
+        timeouts.clear();
     }
 
     public static boolean hasPending(UUID uuid) {
@@ -48,14 +65,20 @@ public class ChatInput {
         UUID uuid = player.getUniqueId();
         Consumer<String> callback = pending.remove(uuid);
         BukkitRunnable task = timeouts.remove(uuid);
-        if (task != null) task.cancel();
+        if (task != null) {
+            try {
+                task.cancel();
+            } catch (IllegalStateException ignored) {}
+        }
         if (callback != null) {
-
             UltimateWarps plugin = UltimateWarps.getInstance();
+            if (plugin == null || !plugin.isEnabled()) return;
             if (Bukkit.isPrimaryThread()) {
-                callback.accept(message);
+                if (player.isOnline()) callback.accept(message);
             } else {
-                Bukkit.getScheduler().runTask(plugin, () -> callback.accept(message));
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                    if (player.isOnline()) callback.accept(message);
+                });
             }
         }
     }

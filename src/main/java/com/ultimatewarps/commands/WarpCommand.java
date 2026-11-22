@@ -2,12 +2,12 @@ package com.ultimatewarps.commands;
 
 import com.ultimatewarps.TeleportTask;
 import com.ultimatewarps.UltimateWarps;
-import com.ultimatewarps.gui.WarpGUI;
-
-import net.kyori.adventure.text.Component;
-
 import com.ultimatewarps.Warp;
-import org.bukkit.ChatColor;
+import com.ultimatewarps.gui.WarpGUI;
+import com.ultimatewarps.playerwarps.PlayerWarpTeleportTask;
+import net.kyori.adventure.text.Component;
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -39,55 +39,66 @@ public class WarpCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
-    long now = System.currentTimeMillis();
-
-    if (args.length == 0) {
-
-        long lastOpen = commandCooldown.getOrDefault(player.getUniqueId(), 0L);
-        if (now - lastOpen < 1000) {
+        if (!plugin.getConfigManager().warpEnabled() && !player.hasPermission("ultimatewarps.admin")) {
+            player.sendMessage(plugin.getConfigManager().getWarpNotFoundMessage());
             return true;
         }
-        commandCooldown.put(player.getUniqueId(), now);
-        WarpGUI.getOrCreate(plugin, player).open();
-        return true;
-    }
 
-    Warp warp = plugin.getWarpManager().getWarp(args[0]);
-    if (warp == null || !warp.isEnabled()) {
-        player.sendMessage(plugin.getConfigManager().getWarpNotFoundMessage());
-        return true;
-    }
+        long now = System.currentTimeMillis();
 
-    String requiredPermission = warp.getPermission();
-    boolean hasAccess = requiredPermission == null || requiredPermission.isEmpty()
-            || player.hasPermission(requiredPermission)
-            || player.hasPermission("ultimatewarps.warp.*");
-    if (!hasAccess) {
-        player.sendMessage(plugin.getConfigManager().getNoPermissionMessage());
-        return true;
-    }
-
-    String cooldownKey = "warp_" + warp.getName();
-    if (!player.hasPermission("ultimatewarps.bypass.cooldown")) {
-        if (plugin.getCooldownManager().hasCooldown(player, cooldownKey)) {
-            int remaining = plugin.getCooldownManager().getRemaining(player, cooldownKey);
-            long lastMessage = cooldownMessages.getOrDefault(player.getUniqueId(), 0L);
-
-            if (now - lastMessage > 2000) {
-                player.sendMessage(plugin.getConfigManager().getCooldownMessage(remaining));
-                cooldownMessages.put(player.getUniqueId(), now);
+        if (args.length == 0) {
+            long lastOpen = commandCooldown.getOrDefault(player.getUniqueId(), 0L);
+            if (now - lastOpen < 1000) {
+                return true;
             }
+            commandCooldown.put(player.getUniqueId(), now);
+            WarpGUI.getOrCreate(plugin, player).open();
             return true;
         }
-    }
+
+        Warp warp = plugin.getWarpManager().getWarp(args[0]);
+        if (warp == null || !warp.isEnabled()) {
+            player.sendMessage(plugin.getConfigManager().getWarpNotFoundMessage());
+            return true;
+        }
+
+        String requiredPermission = warp.getPermission();
+        boolean hasAccess = requiredPermission == null || requiredPermission.isEmpty()
+                || player.hasPermission(requiredPermission)
+                || player.hasPermission("ultimatewarps.warp.*");
+        if (!hasAccess) {
+            player.sendMessage(plugin.getConfigManager().getNoPermissionMessage());
+            return true;
+        }
+
+        String cooldownKey = "warp_" + warp.getName();
+        if (!player.hasPermission("ultimatewarps.bypass.cooldown")) {
+            if (plugin.getCooldownManager().hasCooldown(player, cooldownKey)) {
+                int remaining = plugin.getCooldownManager().getRemaining(player, cooldownKey);
+                long lastMessage = cooldownMessages.getOrDefault(player.getUniqueId(), 0L);
+
+                if (now - lastMessage > 2000) {
+                    player.sendMessage(plugin.getConfigManager().getCooldownMessage(remaining));
+                    cooldownMessages.put(player.getUniqueId(), now);
+                }
+                return true;
+            }
+        }
 
         TeleportTask.cancelAllTasks(player);
+        PlayerWarpTeleportTask.cancelAllTasks(player);
 
         startTeleport(player, warp);
         return true;
     }
 
     private void startTeleport(Player player, Warp warp) {
+        Location dest = warp.getLocation();
+        if (dest == null || dest.getWorld() == null || Bukkit.getWorld(dest.getWorld().getUID()) == null) {
+            player.sendMessage(plugin.getConfigManager().getWarpNotFoundMessage());
+            return;
+        }
+
         int delay = warp.getDelay();
 
         if (!player.hasPermission("ultimatewarps.bypass.delay")) {
@@ -99,8 +110,9 @@ public class WarpCommand implements CommandExecutor, TabCompleter {
         String displayLabel = warp.getDisplayName() != null ? warp.getDisplayName() : warp.getName();
 
         if (delay <= 0) {
-
-            player.teleport(warp.getLocation());
+            if (!player.teleport(dest)) {
+                return;
+            }
 
             plugin.getEffectManager().playTeleportEffect(player, warp.getName(), warp);
             Component msg = plugin.getConfigManager().getTeleportConfirmedMessage(displayLabel);
@@ -113,7 +125,6 @@ public class WarpCommand implements CommandExecutor, TabCompleter {
                 }
             }
         } else {
-
             Runnable onSuccess = null;
             if (!player.hasPermission("ultimatewarps.bypass.cooldown")) {
                 int finalCooldown = (int) (warp.getCooldown() * plugin.getConfigManager().getRankMultiplier(player, "cooldown"));
@@ -122,18 +133,20 @@ public class WarpCommand implements CommandExecutor, TabCompleter {
                 }
             }
 
-            new TeleportTask(player, warp.getLocation(), delay, warp.getName(), displayLabel, onSuccess, warp).runTaskTimer(plugin, 0L, 20L);
+            new TeleportTask(player, dest, delay, warp.getName(), displayLabel, onSuccess, warp).runTaskTimer(plugin, 0L, 20L);
         }
     }
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
-
         if (args.length == 1 && sender instanceof Player player) {
-            String partial = args[0].toLowerCase();
+            if (!plugin.getConfigManager().warpEnabled() && !player.hasPermission("ultimatewarps.admin")) {
+                return new ArrayList<>();
+            }
+            String partial = args[0].toLowerCase(Locale.ROOT);
             return plugin.getWarpManager().getAccessibleWarps(player).stream()
                 .map(Warp::getName)
-                .filter(name -> name.toLowerCase().startsWith(partial))
+                .filter(name -> name.toLowerCase(Locale.ROOT).startsWith(partial))
                 .sorted()
                 .collect(Collectors.toList());
         }

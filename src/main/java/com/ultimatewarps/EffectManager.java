@@ -8,6 +8,8 @@ import org.bukkit.Particle.DustOptions;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 
+import java.util.Locale;
+
 public class EffectManager {
 
     private final UltimateWarps plugin;
@@ -36,7 +38,6 @@ public class EffectManager {
                 player.getWorld().spawnParticle(Particle.PORTAL, loc, count, 0.5, 0.5, 0.5, 0.05);
             }
         } catch (Exception e) {
-
             player.getWorld().spawnParticle(Particle.PORTAL, loc, count, 0.5, 0.5, 0.5, 0.05);
         }
     }
@@ -64,7 +65,9 @@ public class EffectManager {
     }
 
     public void playSound(Player player, Sound sound, float volume, float pitch) {
-        player.playSound(player.getLocation(), sound, volume, pitch);
+        if (sound != null) {
+            player.playSound(player.getLocation(), sound, volume, pitch);
+        }
     }
 
     public void playTeleportEffect(Player player, String type) {
@@ -80,7 +83,7 @@ public class EffectManager {
             if (source.isEffectParticleEnabled()) {
                 Particle particle;
                 try {
-                    particle = Particle.valueOf(source.getEffectParticleType().toUpperCase());
+                    particle = Particle.valueOf(source.getEffectParticleType().toUpperCase(Locale.ROOT));
                 } catch (IllegalArgumentException e) {
                     particle = Particle.DUST;
                 }
@@ -96,8 +99,7 @@ public class EffectManager {
         }
 
         ConfigManager config = plugin.getConfigManager();
-
-        boolean isSpawn = type.equalsIgnoreCase("Spawn");
+        boolean isSpawn = source == null && "Spawn".equalsIgnoreCase(type);
 
         boolean soundEnabled = isSpawn ? config.spawnSoundEnabled() : config.warpSoundEnabled();
         if (soundEnabled) {
