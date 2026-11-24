@@ -1,34 +1,165 @@
-<img width="2560" height="1440" alt="Code_Generated_Image" src="https://github.com/user-attachments/assets/9c4e20d1-bc3a-4dc8-8486-5e817d48cc0b" />
-
 <p align="center">
-  <b style="font-size: 18px;">Advanced warp management plugin for Paper 1.21.x (v4.0)</b><br>
-  <sub style="color: #94a3b8; font-size: 14px;">Stunning GUIs • Immersive Teleports • Player-Created Warps • Ratings • Economy • Whitelist/Blacklist • Favourites</sub>
+  <img width="2560" height="1440" alt="UltimateWarps Banner" src="https://github.com/user-attachments/assets/9c4e20d1-bc3a-4dc8-8486-5e817d48cc0b" />
 </p>
 
-## What's New in v4.0 (Player Warps)
+<p align="center">
+  <strong>Modern spawn, server warp, and player warp management for Paper & Purpur</strong><br>
+  <sub>Interactive GUIs • Dynamic Teleport Effects • Player Warps • Economy & Permissions • Fully Customizable</sub>
+</p>
 
-All new Player Warps features have independent toggle switches in `playerwarps-config.yml`:
+<p align="center">
+  <a href="https://modrinth.com/plugin/ultimate-warps"><img src="https://img.shields.io/badge/Modrinth-Ultimate%20Warps-1bd96a?style=for-the-badge&logo=modrinth&logoColor=white" alt="Modrinth" /></a>
+  <img src="https://img.shields.io/static/v1?label=Version&message=4.1&color=6366f1&style=for-the-badge" alt="Version 4.1" />
+  <img src="https://img.shields.io/static/v1?label=Minecraft&message=1.21.4%20-%2026.3&color=3b82f6&style=for-the-badge" alt="Minecraft 1.21.4 - 26.3" />
+  <img src="https://img.shields.io/static/v1?label=Platform&message=Paper%20%2F%20Purpur&color=8b5cf6&style=for-the-badge" alt="Paper and Purpur" />
+</p>
 
-* **Safe Warp Place Detection (`safe-warp`)** — Checks the 3 blocks at the warp position (solid ground below and at least 2 blocks of air at the warp position and one block up, free of hazards). Can be toggled independently for warp creation (`check-on-create`) and teleportation (`check-on-teleport`). Unsafe teleports are cancelled with a configurable message.
-* **Warps Rating (`rating`)** — After visiting another player's warp that they haven't rated yet, visitors receive a clickable chat prompt to rate the warp from 1 to 5 stars in the Rating GUI (or via Shift+Right-Click in the browser GUI / `/playerwarps rate`). The rating always appears on the first line of the warp lore (`Not rated yet` when unrated).
-* **Money Requirement (`money-require`)** — Players with `ultimatewarps.playerwarps.money` can enable a teleport cost on their warp and set the amount via the Edit Warp GUI or `/playerwarps cost <warp> <amount|on|off|toggle>`. Uses a configurable PlaceholderAPI selector (`balance-placeholder`, default `%vault_eco_balance%`) when the feature is active, and runs configurable console commands (`give-command`: `/eco give %warpowner% %amount%`, `take-command`: `/eco take %visitor% %amount%`). Server staff and the warp owner never pay.
-* **Whitelist & Blacklist (`whitelist` / `blacklist`)** — Warp owners can toggle whitelist mode and manage whitelisted and blacklisted players through separate paginated GUIs (via the Edit Warp GUI or `/playerwarps whitelist <warp> gui` and `/playerwarps blacklist <warp> gui`) as well as commands. Blacklist blocks players even when whitelist mode is off. Server staff and the warp owner cannot be whitelisted/blacklisted and always bypass restrictions.
-* **Favourite Warps (`favourites`)** — Adds a **Favourite** button in `playerwarps-gui.yml` to filter favourite warps, and allows players to add or remove warps from their favourites list by right-clicking warps in the GUI or using `/playerwarps favourite`.
+## Features
 
-## Player Warps Commands
+### Server Spawn & Warps
 
-| Command | Description |
-|---|---|
-| `/playerwarps` , `/pwarps` | Open the player warps browser GUI |
-| `/playerwarps set <name>` | Create a player warp at your location |
-| `/playerwarps del <name>` | Delete one of your own player warps |
-| `/playerwarps edit <name>` | Open the edit menu for one of your own player warps |
-| `/playerwarps list [player]` | List your own warps, or another player's public warps |
-| `/playerwarps warp <name>` | Teleport to a player warp |
-| `/playerwarps warp <owner> <name>` | Teleport to another player's warp |
-| `/playerwarps rate [owner] <warp> [1-5]` | Open the Rating GUI (or rate 1-5 stars) after visiting a warp |
-| `/playerwarps cost <warp> <amount\|on\|off\|toggle>` | Set teleport cost or toggle money requirement on your warp |
-| `/playerwarps whitelist <warp> [gui\|on\|off\|toggle\|add\|remove\|list] [player]` | Manage your warp's whitelist or open the Whitelist GUI |
-| `/playerwarps blacklist <warp> [gui\|add\|remove\|list] [player]` | Manage your warp's blacklist or open the Blacklist GUI |
-| `/playerwarps favourite [owner] [warp]` | Open favourite warps in GUI or add/remove a warp from favourites |
-| `/playerwarps admin <info\|wipe\|tp> ...` | *(staff)* Admin oversight commands |
+* **Spawn Management** — Set or delete server spawn, teleport players automatically on first join or every join, and force-teleport online or offline players with `/spawnforce`.
+
+* **Interactive Warp GUI (`/warp`)** — Customizable multi-page menu with pinned or auto-flowing warp slots, custom icons, enchantment glint, custom lore, filler items, and click sounds.
+
+* **In-Game Admin Editor (`/warpsadmin`)** — Create, edit, and delete server warps directly in-game: toggle status, set permissions, cooldowns, delays, display names, lore, icons (drag-and-drop), GUI slots, and per-warp teleport effects.
+
+### Player Warps (`/pwarps`)
+
+* **Player-Created Warps** — Completely separate from server warps with dedicated config and GUI layout files, per-rank warp limits, and public/private visibility toggles.
+
+* **Paid Warps & Economy** — Warp owners with permission can charge visitors to teleport. Works directly with **Vault** (atomic withdraw, deposit, and automatic refund if a teleport is blocked) or falls back to **PlaceholderAPI** + configurable economy commands.
+
+* **Safe Warp Detection** — Checks ground stability, passable space, and overhead hazards (blocking traps like signs, open trapdoors, unsupported sand/gravel, and lava/anvils) on creation and teleportation.
+
+* **Ratings & Favourites** — Visitors receive a clickable chat prompt to rate warps (1–5 stars) in a GUI, and can right-click warps in `/pwarps` to bookmark and filter their favourites.
+
+* **Whitelist & Blacklist** — Manage warp access through dedicated paginated GUIs or commands. Blacklists apply even when whitelist mode is off; owners and staff always bypass restrictions.
+
+* **Claim & Region Protection** — Optional creation rules for own **GriefPrevention** claims (including subdivisions), outside **WorldGuard** regions, overworld-only, and minimum distance from spawn or other player warps.
+
+### Dynamic Animations, Permissions & Customization
+
+* **Teleport Countdowns & Effects** — Configurable BossBars (color, style, text), titles/subtitles, particles (including colored dust), and sounds for spawn, server warps, and player warps, with cancel-on-move and cancel-on-damage options.
+
+* **Economy & Permission Support** — Optional **LuckPerms** rank multipliers for cooldowns and delays (with standard permission fallback when LuckPerms isn't installed), plus automatic admin access for server OPs.
+
+* **Full MiniMessage & Legacy Formatting** — Supports MiniMessage gradients, hex colors (`&#RRGGBB` / `&x...`), hover/click actions, and legacy `&`/`§` color codes across every config and GUI.
+
+## Requirements & Compatibility
+
+* **Server Software:** Paper or Purpur
+
+* **Minecraft Versions:** `1.21.4` – `26.3` (single JAR)
+
+* **Java:** Java 21+ (runs on Java 21 for 1.21.x and Java 25 for 26.x)
+
+* **Required Dependencies:** None!
+
+* **Optional Integrations:**
+
+  * **Vault** (+ any Vault economy plugin like EssentialsX or CMI) — recommended for paid player warps
+
+  * **PlaceholderAPI** — optional balance fallback if Vault is not installed
+
+  * **LuckPerms** — rank-based cooldown and delay multipliers
+
+  * **WorldGuard** & **GriefPrevention** — optional region and claim placement checks
+
+## Installation
+
+1. Download the latest `UltimateWarps-4.1.jar` from [Modrinth](https://modrinth.com/plugin/ultimate-warps) or build it from source.
+
+2. Drop the `.jar` file into your server's `plugins/` folder.
+
+3. Restart your server and customize the generated files in `plugins/UltimateWarps/`.
+
+## Commands
+
+### Server Spawn & Warps
+
+| Command | Aliases | Description | 
+| ----- | ----- | ----- | 
+| `/spawn` | — | Teleport to server spawn | 
+| `/setspawn` | — | Set the server spawn location *(Admin)* | 
+| `/delspawn` | — | Delete the server spawn location *(Admin)* | 
+| `/spawnforce <player>` | `/forcespawn` | Force-teleport an online or offline player to spawn *(Admin)* | 
+| `/warp [name]` | `/warps`, `/warpslist`, `/warplist` | Open the warp GUI or teleport directly to a warp | 
+| `/setwarp <name>` | — | Create a server warp at your location *(Admin)* | 
+| `/delwarp <name>` | — | Delete a server warp *(Admin)* | 
+| `/warpsadmin` | — | Open the in-game admin warp editor GUI *(Admin)* | 
+| `/ultimatewarps <subcommand>` | `/uwarps` | Unified command (`reload`, `spawn`, `setspawn`, `delspawn`, `warp`, `setwarp`, `delwarp`, `warpsadmin`, `spawnforce`, `help`) | 
+
+### Player Warps
+
+| Command | Description | 
+| ----- | ----- | 
+| `/playerwarps` or `/pwarps` | Open the player warps browser GUI | 
+| `/pwarps set <name>` | Create a player warp at your current location | 
+| `/pwarps del <name>` | Delete one of your own player warps | 
+| `/pwarps edit <name>` | Open the edit menu for one of your player warps | 
+| `/pwarps list [player]` | List your own warps or another player's public warps | 
+| `/pwarps warp <name>` | Teleport to a player warp | 
+| `/pwarps warp <owner> <name>` | Teleport to a specific player's warp | 
+| `/pwarps rate [owner] <warp> [1-5]` | Open the Rating GUI or rate a visited warp (1–5 stars) | 
+| `/pwarps cost <warp> <amount|on|off|toggle>` | Set teleport cost or toggle paid mode on your warp | 
+| `/pwarps whitelist <warp> [gui|on|off|toggle|add|remove|list] [player]` | Manage your warp's whitelist via GUI or commands | 
+| `/pwarps blacklist <warp> [gui|add|remove|list] [player]` | Manage your warp's blacklist via GUI or commands | 
+| `/pwarps favourite [owner] [warp]` | View favourite warps in the GUI or toggle a favourite | 
+| `/pwarps admin <info|wipe|tp> ...` | *(Staff)* Inspect warp limits, wipe a player's warps, or teleport to any warp | 
+
+## Permissions
+
+> **Note:** Server operators (`OP`) automatically have full access to `/warpsadmin` and all admin commands.
+
+### Server Warps & General
+
+| Permission | Default | Description | 
+| ----- | ----- | ----- | 
+| `ultimatewarps.admin` | `op` | Full access to all admin commands and `/warpsadmin` | 
+| `ultimatewarps.spawn` | `true` | Allows using `/spawn` | 
+| `ultimatewarps.warp.*` | `op` | Access to all permission-restricted server warps | 
+| `ultimatewarps.warp.<name>` | `true` | Access to a specific server warp (when enabled in `/warpsadmin`) | 
+| `ultimatewarps.bypass.cooldown` | `false` | Bypass spawn, server warp, and player warp cooldowns | 
+| `ultimatewarps.bypass.delay` | `false` | Bypass spawn, server warp, and player warp teleport delays | 
+| `ultimatewarps.rank.<group>` | `false` | Fallback rank multiplier permission (e.g., `vip`, `mvp`) when LuckPerms is not installed | 
+
+### Player Warps
+
+| Permission | Default | Description | 
+| ----- | ----- | ----- | 
+| `ultimatewarps.playerwarps.browse` | `true` | Browse `/pwarps` and visit public player warps | 
+| `ultimatewarps.playerwarps.create` | `false` | Create and manage own player warps with `/pwarps set` | 
+| `ultimatewarps.playerwarps.money` | `false` | Enable paid teleports and set warp prices | 
+| `ultimatewarps.playerwarps.admin` | `op` | Staff oversight — view/wipe/teleport to any warp and bypass restrictions | 
+| `ultimatewarps.playerwarps.limit.<number>` | `false` | Sets max player warps (e.g., `.1`, `.3`, `.5`, `.10`; highest wins) | 
+| `ultimatewarps.playerwarps.limit.unlimited` | `false` | Removes the player warp limit completely | 
+
+## Configuration Files
+
+All configuration files are generated automatically inside `plugins/UltimateWarps/` and can be reloaded in-game with `/uwarps reload`:
+
+* **`config.yml`** — Spawn settings, global warp defaults, countdown BossBar/title/particle/sound effects, rank multipliers, and messages.
+
+* **`warps-gui.yml`** — Layout, rows, warp slots, navigation buttons, custom decorative items, and click sounds for `/warp`.
+
+* **`playerwarps-config.yml`** — Feature toggles (`safe-warp`, `rating`, `money-require`, `whitelist`, `blacklist`, `favourites`), placement rules, teleport effects, and messages.
+
+* **`playerwarps-gui.yml`** — Layout, warp item templates, buttons, and custom items for `/pwarps`.
+
+## Building from Source
+
+Requires **JDK 21** (or newer) and **Gradle**:
+
+```
+gradle build
+
+```
+
+The compiled plugin JAR will be created at `build/libs/UltimateWarps-4.1.jar`.
+
+## Links & Author
+
+* **Author:** `King_Le0_`
+
+* **Discord:** [Click here to Join discord server for Support](https://discord.com/invite/r4gRhda8Mw)
