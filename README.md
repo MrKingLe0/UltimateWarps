@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <strong>Modern spawn, server warp, and player warp management for Paper & Purpur</strong><br>
+  <strong>Modern server spawn, warp, and player warp management for Paper & Purpur</strong><br>
   <sub>Interactive GUIs • Dynamic Teleport Effects • Player Warps • Economy & Permissions • Fully Customizable</sub>
 </p>
 
